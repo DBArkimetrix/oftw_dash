@@ -77,6 +77,9 @@ def create_form(data = data_loader.get_default_target_data()):
     #     ) for key, value in data.items()
     # ]
 
+# # Read the HTML file content
+# with open("./about.html", "r") as f:
+#     about_content = f.read()
 
 def chart_header_title_with_ai(chart_id, title):
     component = html.Div(
@@ -1472,6 +1475,29 @@ def moneymoved_layout():
                                                                 ],
                                                             ),
                                                         ],
+                                                    ),
+                                                    html.Div(
+                                                        [
+                                                            dbc.Button(
+                                                                "About OFTW Dashboard",
+                                                                id="collapse-button",
+                                                                className="mb-3",
+                                                                color="primary",
+                                                                n_clicks=0,
+                                                            ),
+                                                            dbc.Collapse(
+                                                                dbc.Card(
+                                                                    dbc.CardBody(
+                                                                        html.Iframe(
+                                                                            src="/assets/about.html",
+                                                                            style={"width": "100%", "height": "400px", "border": "none"}
+                                                                        )
+                                                                    )
+                                                                ),                                                               
+                                                                id="collapse",
+                                                                is_open=False,
+                                                            ),
+                                                        ]
                                                     ),
                                                     html.Div([
                                                         html.Footer(

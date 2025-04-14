@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OFTW Dashboard Notes</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 2rem;
+      width: 80%;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-content h1, .modal-content h2, .modal-content h3 {
+      margin-top: 1.5em;
+    }
+
+    .modal-content ul {
+      padding-left: 1.2rem;
+    }
+
+    /* .close-button {
+      position: absolute;
+      top: 2rem;
+      right: 3rem;
+      font-size: 1.2rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+    } */
+
+    .code {
+      font-family: monospace;
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal-content">
+    <!-- <button class="close-button" onclick="document.getElementById('modal').style.display='none'">Close ✕</button> -->
+    <h1>OFTW Dashboard – with compliments from the team at Arkimetrix Analytics</h1>
+
+    <h2>Notes</h2>
+    <p>
+      This dashboard summarizes key metrics from the Metric Wishlist. The data pipeline is not currently connected to live source files, 
+      but can be scheduled for automated updates as needed. <em>Refresh is not currently enabled.</em>
+    </p>
+
+    <h2>Targets</h2>
+    <p>
+      A form is available to create or update targets by fiscal year. Fiscal 2024–25 targets were updated using the provided spreadsheet.
+      Monthly targets reflect prior-year seasonality where possible.
+    </p>
+    <ul>
+      <li>Some visuals use straight-line monthly targets (i.e., full year target ÷ 12).</li>
+      <li>These can be updated with seasonalized values later if needed.</li>
+    </ul>
+
+    <h2>Data Context</h2>
+    <p>
+      Visuals provide both numeric and comparative context to prior year and target values. Views include Monthly and Fiscal YTD perspectives.
+      Future enhancements may support toggles between Monthly, Quarterly, and YTD views.
+    </p>
+
+    <h3>Date Table</h3>
+    <p>
+      A custom fiscal calendar is used, starting June 1. All aggregations (e.g., YTD) are based on this fiscal calendar.
+    </p>
+
+    <h3>Filters Applied</h3>
+    <p>The following portfolios have been excluded:</p>
+    <ul>
+      <li>One for the World Discretionary Fund</li>
+      <li>One for the World Operating Costs</li>
+    </ul>
+    <p>Duplicate payment records (by ID) were also removed to ensure accuracy.</p>
+
+    <h2>FX Rate Conversion to USD</h2>
+    <p>
+      Local currencies are converted to USD using monthly FX rates from the 
+      <a href="https://www.bankofcanada.ca/valet/observations/group/FX_RATES_MONTHLY" target="_blank">Bank of Canada</a>.
+    </p>
+    <ul>
+      <li><span class="code">XXX_to_USD = FXMXXXCAD / FXMUSDCAD</span></li>
+      <li><span class="code">CAD_to_USD = 1 / FXMUSDCAD</span></li>
+    </ul>
+    <p>
+      FX rates are joined on a monthly lookup date, and all pledge and payment values are converted to USD using the corresponding rate. 
+      Final values are saved in <span class="code">pledges.parquet</span> and <span class="code">payments.parquet</span>.
+    </p>
+  </div>
+</div>
+
+</body>
+</html>
