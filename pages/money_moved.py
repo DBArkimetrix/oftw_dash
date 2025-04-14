@@ -301,6 +301,43 @@ def update_active_pledge_arr_sankey(selected_fy, selected_view_mode, ai_icon_cli
 
     return active_pledge_arr_sankey_fig, active_pledge_arr_card, new_ai_messages
 
+
+@callback(
+    Output("attrition-rate-line-graph", "figure"),
+    Output("ai-message-store", "data", allow_duplicate = True),
+    Input("fy-filter", "value"),
+    Input("attrition-rate-line-drilldown-by-filter", "value"),
+    Input({"type": "ai-icon", "chart": ALL}, "n_clicks"),
+    State("ai-message-store", "data"),
+    prevent_initial_call = "initial_duplicate"
+)
+def update_attrition_rate_line_graph(selected_fy, selected_drilldown_by, ai_icon_clicks_list, existing_ai_messages):
+    triggered_id = ctx.triggered_id
+    chart_insight = None
+
+    # Check if the triggered_id is a dictionary and has a "type" key
+    # This is to check if the triggered_id is from the ai-icon
+    if triggered_id and isinstance(triggered_id, dict) and "type" in triggered_id:
+        chart_insight = triggered_id.get("chart")
+
+    filters = []
+    target = 18/100
+
+    if selected_fy:
+        filters.append(("pledge_starts_at_fy", "==", selected_fy))
+
+    attrition_lf = data_preparer.filter_data("pledge_attrition", filters)
+
+    # Hardcode
+    if selected_fy == "FY2024-2025":
+        attrition_lf = (attrition_lf
+                        .filter(pl.col("pledge_starts_at_fm") < 9)  # No greater than Feb'25
+                    )
+
+    attrition_rate_line_fig = figure_instance.create_attrition_rate_trendline(attrition_lf, selected_drilldown_by)
+
+    return attrition_rate_line_fig, existing_ai_messages 
+
 @callback(
     Output("ai-output", "children"),
     Input("ai-message-store", "data")

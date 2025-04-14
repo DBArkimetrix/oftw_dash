@@ -609,6 +609,156 @@ class Figure:
             
         return fig
     
+    def create_attrition_rate_trendline(self, attrition_lf, selected_drilldown_by):
+
+        lf = attrition_lf
+
+        fig = go.Figure()
+
+        if selected_drilldown_by:
+            lf = (lf
+                .group_by(["pledge_starts_at_fm", selected_drilldown_by])
+                .agg([
+                    pl.sum("total_pledge_count").alias("total_pledge_count"),
+                    pl.sum("is_cancelled_count").alias("is_cancelled_count"),
+                    pl.col(["pledge_starts_at_calendar_month", "pledge_starts_at_calendar_monthyear"]).first(),
+                ])
+                .with_columns([
+                    (pl.col("is_cancelled_count") / pl.col("total_pledge_count")).alias("attrition_rate")
+                ])
+                .sort("pledge_starts_at_fm")
+            )
+
+            unique_traces = data_preparer.get_col_unique_values_lf(lf, selected_drilldown_by)
+
+            df = lf.collect()
+
+            for trace in unique_traces:
+                trace_df = df.filter(pl.col(selected_drilldown_by) == trace).sort("pledge_starts_at_fm")
+                # print(trace_df)
+
+                fig = fig.add_trace(
+                    self.create_line_trace(
+                        x_values = trace_df["pledge_starts_at_fm"],
+                        y_values = trace_df["attrition_rate"],
+                        markers_mode = "lines+markers",
+                        marker_size = 8,
+                        marker_color = px.colors.qualitative.Set3,
+                        # text_values_list = [f"${val:,.2f}" if val is not None else "" for val in y_vals],
+                        text_position = "top left",
+                        name_for_legend = trace,
+                        # legend_group = "Cumulative Donations",
+                        # line_color = self.colors['primary'],
+                        line_width = 3,
+                        hover_template = "%{y}",
+                    )
+                )
+        else:
+            df = (lf
+                .group_by(["pledge_starts_at_fm"])
+                .agg([
+                    pl.sum("total_pledge_count").alias("total_pledge_count"),
+                    pl.sum("is_cancelled_count").alias("is_cancelled_count"),
+                    pl.col(["pledge_starts_at_calendar_month", "pledge_starts_at_calendar_monthyear"]).first(),
+                ])
+                .with_columns([
+                    (pl.col("is_cancelled_count") / pl.col("total_pledge_count")).alias("attrition_rate")
+                ])
+                .sort("pledge_starts_at_fm")
+                .collect()
+            )
+
+            y_vals = df["attrition_rate"].to_list()
+            x_vals = df["pledge_starts_at_fm"].to_list()
+
+            fig = fig.add_trace(
+                    self.create_line_trace(
+                        x_values = x_vals,
+                        y_values = y_vals,
+                        markers_mode = "lines+markers+text",
+                        marker_size = 8,
+                        marker_color = self.colors['primary'],
+                        text_values_list = [f"${val:,.2%}" if val is not None else "" for val in y_vals],
+                        text_position = "top left",
+                        name_for_legend = "Attrition Rate",
+                        # legend_group = "Cumulative Donations",
+                        line_color = self.colors['primary'],
+                        line_width = 3,
+                        hover_template = "%{text}",
+                    )
+                )
+            
+            # fig.add_shape(
+            #     type="line",
+            #     x0=min(x_vals),
+            #     x1=max(x_vals),
+            #     y0=monthly_target,
+            #     y1=monthly_target,
+            #     line=dict(color="red", width=2, dash="dash"),
+            #     xref="x",
+            #     yref="y"
+            # )
+
+            # fig.add_annotation(
+            #     x=max(x_vals),
+            #     y=monthly_target,
+            #     text="Monthly Target (1.5%)",
+            #     showarrow=False,
+            #     font=dict(size=12, color="red"),
+            #     xanchor="left",
+            #     yanchor="bottom"
+            # )
+                        
+        # Get all unique fiscal months in correct order
+        all_months_df = (
+            lf
+            .select(["pledge_starts_at_fm", "pledge_starts_at_calendar_monthyear"])
+            .unique()
+            .sort("pledge_starts_at_fm")
+            .collect()
+        )
+
+        month_keys = all_months_df["pledge_starts_at_fm"].to_list()
+        # month_keys = [x - 1 for x in all_months_df["pledge_starts_at_fm"].to_list()]
+        month_labels = all_months_df["pledge_starts_at_calendar_monthyear"].to_list()
+
+        fig.update_layout(
+            hovermode = "x unified",
+            # showlegend = False,
+            legend = dict(title = dict(text = "Select (Double-Click) / De-Select (One-Click)", side = "top center"), yanchor = "top", y = 1.1, x = 0.5, xanchor = "center", orientation = "h"),
+            template = self.plotly_template,
+            margin =  self.chart_margin,
+            xaxis = dict(
+                # title = "Month",
+                tickmode = "array",
+                tickvals = month_keys,
+                ticktext = month_labels,
+                showgrid = False,
+                zeroline = False,
+                showline = True,
+                ticks = "outside",
+                tickcolor = self.colors['secondary'],
+            ),
+            yaxis = dict(
+                # title = "Cumulative Donations",
+                # range = [0, target * 1.2],
+                tickformat = ",.0%",
+                showgrid = False,
+                zeroline = False,
+                showline = False,
+                # showticklabels = False,
+                ticks = "outside",
+                tickcolor = self.colors['secondary'],
+            ),
+            # title = dict(
+            #     text = f"Monthly Cumulative Money Moved",
+            #     x = 0.5,
+            #     font = dict(size = 24),
+            # ),
+        )
+            
+        return fig
+    
     # Define the Sankey generator function
     def create_active_pledge_arr_sankey(self, df: pl.DataFrame, view_mode: str = "actual", total_target: float = TOTAL_TARGET) -> go.Figure:
 

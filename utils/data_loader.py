@@ -54,6 +54,7 @@ parquet_files = {
     "pledges": "pledges.parquet",
     "payments": "payments.parquet",
     "pledge_active_arr": "pledge_active_arr.parquet",
+    "pledge_attrition": "pledge_attrition.parquet",
 }
 
 data_loader = DataLoader(parquet_files)
