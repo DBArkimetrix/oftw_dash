@@ -51,6 +51,7 @@ class DataLoader:
 
     def get_default_target_data(self):
         return {
+            "fy": "",
             "money_moved": 1_800_000,
             "counterfactual_mm": 1_260_000,
             "active_arr": 1_200_000,

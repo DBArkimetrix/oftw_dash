@@ -1371,7 +1371,7 @@ def moneymoved_layout():
                                                                 className="row gy-4 mb-1",
                                                                 children=[
                                                                     # html.Div(
-                                                                    #     className="col-xxl-6 col-md-6 col-xs-12 col-sm-12 col-xl-12 ",
+                                                                    #     className="col-xxl-12 col-md-12 col-xs-12 col-sm-12 col-xl-12 ",
                                                                     #     children=[
                                                                     #         html.Div(
                                                                     #             className="card h-100",
@@ -1409,45 +1409,46 @@ def moneymoved_layout():
                                                                     #                                 # ),
                                                                     #                             ],
                                                                     #                         ),
-                                                                    #                         html.Div(
-                                                                    #                             className="row",  # Add a row wrapper for proper Bootstrap grid behavior
-                                                                    #                             children=[
-                                                                    #                                 html.Div(
-                                                                    #                                     className="col-md-6 col-12",  # Half width on md and full on smaller screens
-                                                                    #                                     children=[
-                                                                    #                                         dcc.Dropdown(
-                                                                    #                                             id = "attrition-rate-line-drilldown-by-filter",
-                                                                    #                                             options=[
-                                                                    #                                                 dict(
-                                                                    #                                                     label=item[
-                                                                    #                                                         "label"
-                                                                    #                                                     ],
-                                                                    #                                                     value=item[
-                                                                    #                                                         "value"
-                                                                    #                                                     ],
-                                                                    #                                                 )
-                                                                    #                                                 for item in attrition_drilldown_by
-                                                                    #                                             ],
-                                                                    #                                             placeholder="Drilldown by",
-                                                                    #                                             multi=False,
-                                                                    #                                             value="",
-                                                                    #                                             clearable=True,
-                                                                    #                                         )
-                                                                    #                                     ],
-                                                                    #                                 ),
-                                                                    #                             ],
-                                                                    #                         ),
+                                                                    #                         # html.Div(
+                                                                    #                         #     className="row",  # Add a row wrapper for proper Bootstrap grid behavior
+                                                                    #                         #     children=[
+                                                                    #                         #         html.Div(
+                                                                    #                         #             className="col-md-6 col-12",  # Half width on md and full on smaller screens
+                                                                    #                         #             children=[
+                                                                    #                         #                 dcc.Dropdown(
+                                                                    #                         #                     id = "attrition-rate-line-drilldown-by-filter",
+                                                                    #                         #                     options=[
+                                                                    #                         #                         dict(
+                                                                    #                         #                             label=item[
+                                                                    #                         #                                 "label"
+                                                                    #                         #                             ],
+                                                                    #                         #                             value=item[
+                                                                    #                         #                                 "value"
+                                                                    #                         #                             ],
+                                                                    #                         #                         )
+                                                                    #                         #                         for item in attrition_drilldown_by
+                                                                    #                         #                     ],
+                                                                    #                         #                     placeholder="Drilldown by",
+                                                                    #                         #                     multi=False,
+                                                                    #                         #                     value="",
+                                                                    #                         #                     clearable=True,
+                                                                    #                         #                 )
+                                                                    #                         #             ],
+                                                                    #                         #         ),
+                                                                    #                         #     ],
+                                                                    #                         # ),
                                                                     #                         html.Div(
                                                                     #                             className="table bordered-table mb-0 dataTable",
                                                                     #                             children=[
                                                                     #                                 dcc.Graph(
-                                                                    #                                     id="attrition-rate-line-graph",
+                                                                    #                                     id="cell-grid-graph",
                                                                     #                                     style={
                                                                     #                                         "backgroundColor": colors[
                                                                     #                                             "white"
                                                                     #                                         ],
                                                                     #                                         "borderRadius": "10px",
                                                                     #                                         "padding": "15px",
+                                                                    #                                         "minHeight": "500px",
                                                                     #                                         # "boxShadow": "0 0 20px rgba(0, 0, 0, 0.15)",
                                                                     #                                     },
                                                                     #                                     config={

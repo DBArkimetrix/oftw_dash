@@ -25,7 +25,7 @@ from utils.data_preparer import DataPreparer
 data_preparer = DataPreparer()
 
 # Define your total target ARR
-TOTAL_TARGET = 1_200_000
+TOTAL_ARR_TARGET = 1_200_000
 
 class Figure:
 
@@ -685,7 +685,7 @@ class Figure:
             
         return fig
     
-    def create_active_pledge_arr_sankey(self, df: pl.DataFrame, view_mode: str = "actual", total_target: float = TOTAL_TARGET) -> go.Figure:
+    def create_active_pledge_arr_sankey(self, df: pl.DataFrame, view_mode: str = "actual", total_target: float = TOTAL_ARR_TARGET) -> go.Figure:
         # Group and compute actuals
         grouped = df.group_by(["pledge_chapter_type", "pledge_frequency"]).agg(
             pl.col("pledge_contribution_arr_usd").sum().alias("actual_arr")
@@ -1036,16 +1036,31 @@ class Figure:
         ))
 
         for _, row in df.iterrows():
-            fig.add_trace(go.Scatter(
-                x=[row["prior_fy"], row["selected_fy"]],
-                y=[row["pledge_donor_chapter"], row["pledge_donor_chapter"]],
-                mode="lines",
-                name="",
-                line=dict(color="gray", width=1),
-                showlegend=False,
-                hovertemplate = "%{name}",
-                hoverinfo = "none",
-            ))
+            fig.add_annotation(
+                x=row["selected_fy"],
+                y=row["pledge_donor_chapter"],
+                ax=row["prior_fy"],
+                ay=row["pledge_donor_chapter"],
+                xref="x",
+                yref="y",
+                axref="x",
+                ayref="y",
+                showarrow=True,
+                arrowhead=5,  # Arrowhead style
+                arrowsize=2,
+                arrowwidth=1,
+                arrowcolor="gray",
+            )
+            # fig.add_trace(go.Scatter(
+            #     x=[row["prior_fy"], row["selected_fy"]],
+            #     y=[row["pledge_donor_chapter"], row["pledge_donor_chapter"]],
+            #     mode="lines",
+            #     name="",
+            #     line=dict(color="gray", width=1),
+            #     showlegend=False,
+            #     hovertemplate = "%{name}",
+            #     hoverinfo = "none",
+            # ))
         
         # Add logos as layout images
         layout_images = []
@@ -1118,3 +1133,228 @@ class Figure:
         )
 
         return fig
+
+    # def create_cell_grid_graph(self, cy_df, py_df, TARGET = 1_800_000):
+    #     """
+        
+    #     """
+
+    #     # cy_df = cy_df.to_pandas()
+    #     # py_df = py_df.to_pandas()
+
+    #     CELL_VALUE = 10000
+
+    #     months = cy_df["payment_date_calendar_monthyear"].to_list()
+    #     monthly_target = TARGET / 12
+    #     # print(months)       
+    #     # Define month order based on fiscal calendar
+    #     fiscal_months = [
+    #         {'name': 'Jul', 'sort': 1}, {'name': 'Aug', 'sort': 2}, 
+    #         {'name': 'Sep', 'sort': 3}, {'name': 'Oct', 'sort': 4},
+    #         {'name': 'Nov', 'sort': 5}, {'name': 'Dec', 'sort': 6}, 
+    #         {'name': 'Jan', 'sort': 7}, {'name': 'Feb', 'sort': 8},
+    #         {'name': 'Mar', 'sort': 9}, {'name': 'Apr', 'sort': 10},
+    #         {'name': 'May', 'sort': 11}, {'name': 'Jun', 'sort': 12}
+    #     ]
+    #     month_names = [m['name'] for m in fiscal_months] 
+
+    #     cells_per_month = int(np.ceil(monthly_target / CELL_VALUE))
+        
+    #     # Calculate monthly target in thousands for y-axis label
+    #     monthly_target_k = monthly_target / 1000
+        
+    #     has_prior_year = True
+    #     # Sort data by FiscalMonthSort for proper ordering
+    #     monthly_totals = cy_df.to_pandas()
+    #     if has_prior_year:
+    #         prior_year_totals = py_df.to_pandas()
+        
+    #     # Create subplots with reduced space between them
+    #     # fig = make_subplots(
+    #     #     rows=2, 
+    #     #     cols=1,
+    #     #     row_heights=[0.70, 0.30],  # Give the line chart a bit more space
+    #     #     vertical_spacing=0.02,  # Reduce space between charts
+    #     #     shared_xaxes=False  # We'll manage the x-axes manually for better control
+    #     # )
+
+    #     fig = go.Figure()
+        
+    #     # FIRST ROW: CELL GRID VISUALIZATION =========================
+        
+    #     # Setup grid
+    #     num_rows = cells_per_month
+    #     num_cols = len(fiscal_months)
+    #     total_cells = num_rows * num_cols
+        
+    #     # Generate grid positions
+    #     x_positions = np.repeat(np.arange(num_cols), num_rows)
+    #     y_positions = np.tile(np.arange(num_rows), num_cols)
+        
+    #     # Initialize cell colors array
+    #     cell_colors = []
+        
+    #     # Initialize arrays to track which cells should show prior year > current year
+    #     py_gt_cy_x = []
+    #     py_gt_cy_y = []
+        
+    #     # print(monthly)
+    #     # For each month, determine how many cells to fill
+    #     for col_idx, month in enumerate(fiscal_months):
+    #         # Get current year month data
+    #         month_data = monthly_totals[monthly_totals['payment_date_fm'] == month['sort']]
+            
+    #         if not month_data.empty:
+    #             month_amount = month_data.iloc[0]['money_moved_monthly']
+    #         else:
+    #             month_amount = 0
+            
+    #         # Get prior year month data
+    #         if has_prior_year:
+    #             py_month_data = prior_year_totals[prior_year_totals['payment_date_fm'] == month['sort']]
+    #             if not py_month_data.empty:
+    #                 py_month_amount = py_month_data.iloc[0]['money_moved_monthly']
+    #             else:
+    #                 py_month_amount = 0
+    #         else:
+    #             py_month_amount = 0
+                
+    #         # Calculate filled cells based on payment amount
+    #         filled_cells = min(int(month_amount / CELL_VALUE), cells_per_month)
+    #         py_filled_cells = min(int(py_month_amount / CELL_VALUE), cells_per_month)
+            
+    #         # Set colors for cells in this column
+    #         for row_idx in range(cells_per_month):
+    #             cell_idx = col_idx * cells_per_month + row_idx
+                
+    #             # Check if prior year performance is better at this cell position
+    #             if row_idx >= filled_cells and row_idx < py_filled_cells:
+    #                 # Prior year outperformed current year at this position
+    #                 py_gt_cy_x.append(col_idx)
+    #                 py_gt_cy_y.append(row_idx)
+                
+    #             if row_idx < filled_cells:
+    #                 # More saturated green for filled cells
+    #                 color_intensity = min(row_idx / filled_cells, 1.0) if filled_cells > 0 else 0
+    #                 color = f'rgba(0, {int(140 + 60*color_intensity)}, {int(120 + 40*color_intensity)}, 0.8)'
+    #                 cell_colors.append(color)
+    #             else:
+    #                 # Light gray for unfilled cells
+    #                 cell_colors.append('rgba(220, 220, 220, 0.2)')
+        
+    #     # First add month background rectangles
+    #     for col in range(num_cols):
+    #         fig.add_shape(
+    #             type="rect",
+    #             x0=col - 0.45,
+    #             y0=-0.45,
+    #             x1=col + 0.45,
+    #             y1=num_rows - 0.55,
+    #             fillcolor='rgba(240, 248, 255, 0.3)' if col % 2 == 0 else 'rgba(245, 245, 245, 0.3)',
+    #             line=dict(color="rgba(200, 200, 200, 0.3)", width=1),
+    #             layer="below",
+    #             # row=1, col=1
+    #         )
+        
+    #     # Add custom month labels in smaller space between charts
+    #     for col in range(num_cols):
+    #         fig.add_annotation(
+    #             x=col,
+    #             y=-1.0,  # Move labels closer to the grid
+    #             text=month_names[col],
+    #             showarrow=False,
+    #             font=dict(size=12, color=self.colors['text'], family="Arial", weight="bold"),
+    #             # row=1, col=1
+    #         )
+            
+    #         # Remove the second set of labels by setting them to empty strings
+    #         fig.add_annotation(
+    #             x=col,
+    #             y=0,  # Overwrite the bottom axis labels
+    #             text="",
+    #             showarrow=False,
+    #             font=dict(size=1),  # Tiny font for invisible text
+    #             # row=2, col=1
+    #         )
+        
+    #     # Prior year performance markers are now displayed directly in the grid cells
+    #     # We keep the red markers for cells where prior year > current year
+    #     if py_gt_cy_x:  # Only add if there are points to show
+    #         scatter_py = go.Scatter(
+    #             x=py_gt_cy_x,
+    #             y=py_gt_cy_y,
+    #             mode='markers',
+    #             marker=dict(
+    #                 symbol='square',
+    #                 size=12,
+    #                 color='rgba(220, 50, 50, 0.7)',  # Deep red for cells where PY > CY
+    #                 line=dict(width=1, color='rgba(180, 50, 50, 0.8)')
+    #             ),
+    #             name="Prior Year > Current Year",
+    #             hoverinfo='none'
+    #         )
+    #         fig.add_trace(scatter_py, 
+    #         # row=1, col=1
+    #         )
+        
+    #     # Add the grid cells for current year
+    #     scatter_cy = go.Scatter(
+    #         x=x_positions,
+    #         y=y_positions,
+    #         mode='markers',
+    #         marker=dict(
+    #             symbol='square',
+    #             size=12,
+    #             color=cell_colors,
+    #             line=dict(width=1, color='rgba(150, 150, 150, 0.3)')
+    #         ),
+    #         name="Current Year",
+    #         hoverinfo='none'
+    #     )
+    #     fig.add_trace(scatter_cy, 
+    #     # row=1, col=1
+    #     )
+        
+    #     # Add progress information
+    #     total_raised = monthly_totals['money_noved_monthly'].sum() if not monthly_totals.empty else 0
+    #     funding_percentage = min(total_raised / FISCAL_YEAR_TARGET, 1.0)
+        
+    #     # Calculate prior year total if available
+    #     if has_prior_year and not prior_year_totals.empty:
+    #         py_total_raised = prior_year_totals['money_moved_monthly'].sum()
+    #         py_funding_percentage = min(py_total_raised / FISCAL_YEAR_TARGET, 1.0)
+    #         py_comparison = f" (Prior Year: ${py_total_raised:,.0f}, {py_funding_percentage:.1%})"
+    #     else:
+    #         py_comparison = ""
+        
+    #     fig.add_annotation(
+    #         x=num_cols/2,
+    #         y=num_rows + 2,
+    #         text=f"Annual Funding Progress by Month",
+    #         showarrow=False,
+    #         font=dict(size=18, color=self.colors['text']),
+    #         # row=1, col=1
+    #     )
+        
+    #     # Add month completion indicators
+    #     for i, month in enumerate(fiscal_months):
+    #         # Current year month indicator
+    #         month_data = monthly_totals[monthly_totals['payment_date_fm'] == month['sort']]
+    #         if not month_data.empty:
+    #             month_amount = month_data.iloc[0]['money_moved_monthly']
+    #             month_percentage = min(month_amount / monthly_target, 1.0)
+                
+    #             # Add completion indicator only if month has some funding
+    #             if month_percentage > 0:
+    #                 fig.add_shape(
+    #                     type="rect",
+    #                     x0=i - 0.48,
+    #                     y0=num_rows,
+    #                     x1=i + 0.48,
+    #                     y1=num_rows + 0.5,
+    #                     fillcolor=self.colors['primary'],
+    #                     opacity=month_percentage,
+    #                     line=dict(width=0),
+    #                     layer="below",
+    #                     # row=1, col=1
+    #                 )

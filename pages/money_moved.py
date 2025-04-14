@@ -70,6 +70,7 @@ def active_donors_pledges_card(selected_fy):
     Output("money-moved-cumulative-graph", "figure"),
     Output("recurring-money-moved-bar-graph", "figure"),
     Output("chapter-dumbell-graph", "figure"),
+    # Output("cell-grid-graph", "figure"),
     # Output("cf-money-moved-cumulative-graph", "figure"),
     # Output("money-moved-mosaic-graph", "figure"),
     # Output("money-moved-heatmap-graph", "figure"),
@@ -79,13 +80,14 @@ def active_donors_pledges_card(selected_fy):
     Input("topn-chapter-slider", "value"),
     # Input("payment-platform-filter", "value"),
     # Input("chapter-type-filter", "value"),
+    Input("target-form-data-store", "data"),
     Input({"type": "ai-icon", "chart": ALL}, "n_clicks"),
     [
         State("ai-message-store", "data"),
     ],
     prevent_initial_call = "initial_duplicate"
 )
-def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_value, ai_icon_clicks_list, existing_ai_messages):
+def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_value, target_form_data, ai_icon_clicks_list, existing_ai_messages):
     triggered_id = ctx.triggered_id
     chart_insight = None
 
@@ -98,8 +100,12 @@ def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_val
     prior_fy_value = f"FY{int(selected_fy[2:6]) - 1}-{int(selected_fy[7:]) - 1}"
     sy_py_filters = [("payment_date_fy", "in", [selected_fy, prior_fy_value])]
 
-    fund_raise_target = 1_800_000
-    cf_fund_raise_target = 1_260_000
+    if len(target_form_data) > 0:
+        fund_raise_target = target_form_data.get("money_moved", 1_800_000)
+        cf_fund_raise_target = target_form_data.get("counterfactual_mm", 1_260_000)
+    else:
+        fund_raise_target = 1_800_000
+        cf_fund_raise_target = 1_260_000
 
     if selected_fy:
         filters.append(("payment_date_fy", "==", selected_fy))
@@ -143,9 +149,11 @@ def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_val
             pl.cum_sum("money_moved_monthly").alias("money_moved_cumulative"),
             pl.cum_sum("cf_money_moved_monthly").alias("cf_money_moved_cumulative"),
         ])
-        .select(["payment_date_fm", "payment_date_calendar_monthyear", "money_moved_cumulative", "cf_money_moved_cumulative"])
+        # .select(["payment_date_fm", "payment_date_calendar_monthyear", "money_moved_cumulative", "cf_money_moved_cumulative"])
         .collect()
     )
+
+    # print(money_moved_ytd_df)
 
     money_moved_py_df = (data_loader.get_data("merged")
         .filter(pl.col("payment_date_fy") == prior_fy_value)
@@ -164,11 +172,14 @@ def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_val
             pl.cum_sum("monthly_target_runrate").alias("money_moved_cumulative"),
             pl.cum_sum("cf_monthly_target_runrate").alias("cf_money_moved_cumulative"),
         ])
-        .drop(["money_moved_monthly", "cf_money_moved_monthly"])
+        # .drop(["money_moved_monthly", "cf_money_moved_monthly"])
         .collect()
     )
 
     # print(money_moved_py_df)
+    
+    # Generate cell grid plot
+    # cell_grid_fig = figure_instance.create_cell_grid_graph(money_moved_ytd_df, money_moved_py_df)
 
     mm_monthly_fig = go.Figure()
 
@@ -331,11 +342,12 @@ def update_mm_monthly_trendline(selected_fy, selected_amount_type, selected_dril
     Output("ai-message-store", "data", allow_duplicate = True),
     Input("fy-filter", "value"),
     Input("active-pledge-arr-sankey-view-mode", "value"),
+    Input("target-form-data-store", "data"),
     Input({"type": "ai-icon", "chart": ALL}, "n_clicks"),
     State("ai-message-store", "data"),
     prevent_initial_call = "initial_duplicate"
 )
-def update_active_pledge_arr_sankey(selected_fy, selected_view_mode, ai_icon_clicks_list, existing_ai_messages):
+def update_active_pledge_arr_sankey(selected_fy, selected_view_mode, target_form_data, ai_icon_clicks_list, existing_ai_messages):
     triggered_id = ctx.triggered_id
     chart_insight = None
 
@@ -343,6 +355,11 @@ def update_active_pledge_arr_sankey(selected_fy, selected_view_mode, ai_icon_cli
     # This is to check if the triggered_id is from the ai-icon
     if triggered_id and isinstance(triggered_id, dict) and "type" in triggered_id:
         chart_insight = triggered_id.get("chart")
+
+    if len(target_form_data) > 0:
+        arr_target = target_form_data.get("active_arr", 1_200_000)
+    else:
+        arr_target = 1_200_000
 
     filters = []
 
@@ -356,7 +373,7 @@ def update_active_pledge_arr_sankey(selected_fy, selected_view_mode, ai_icon_cli
     active_pledge_arr_card = figure_instance.create_kpi_card(total_arr_value, goal = 1_200_000, body_text = "Active Annualized Run Rate")
 
     # Sankey graph
-    active_pledge_arr_sankey_fig = figure_instance.create_active_pledge_arr_sankey(pledge_active_arr_df, selected_view_mode)
+    active_pledge_arr_sankey_fig = figure_instance.create_active_pledge_arr_sankey(pledge_active_arr_df, selected_view_mode, arr_target)
 
     # For AI insight
     ai_insight = []
@@ -489,6 +506,7 @@ def update_store(n_clicks, *values):
     return updated_data
 
 labels = {
+    # "fy": "Fiscal Year",
     "money_moved": "Money Moved ($M)",
     "counterfactual_mm": "Counterfactual MM ($M)",
     "active_arr": "Active ARR Run Rate ($M)",
@@ -510,6 +528,7 @@ def create_form(data = data_loader.get_default_target_data()):
                 id=f"input-{key}",
                 type="number",
                 value=value,
+                style = {"display": "none"} if key == "fy" else {},
                 className="form-control text-dark bg-white border"
             )
         ], className="mb-3")  # spacing between fields
@@ -526,7 +545,6 @@ def create_form(data = data_loader.get_default_target_data()):
 def show_target_form(selected_fy, existing_data):
     if not selected_fy:
         return html.Div("Please select a valid Fiscal Year.")
-
     return create_form(existing_data)
 
 
