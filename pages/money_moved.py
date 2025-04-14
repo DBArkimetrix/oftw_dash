@@ -12,7 +12,7 @@ from utils.figure import Figure
 
 from pages.layouts import moneymoved_layout
 
-dash.register_page(__name__, path = '/')
+dash.register_page(__name__, path = '/', title = "OFTW Dashboard")
 
 data_preparer = DataPreparer()
 figure_instance = Figure()
