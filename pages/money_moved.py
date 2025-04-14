@@ -3,6 +3,7 @@ from dash import Input, Output, callback, ctx, html, ALL, State, dcc
 import dash_bootstrap_components as dbc
 
 import polars as pl
+import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 
@@ -155,15 +156,41 @@ def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_val
             prior_fy_value: "prior_fy"
         })
         .filter(pl.col("pledge_donor_chapter").is_not_null())
-        .filter(pl.col("selected_fy").is_not_null())
-        .sort("selected_fy", descending=True)
-        .head(topn_donor_chapter_value)    
+        .with_columns([
+            pl.col("selected_fy").fill_null(0),
+            pl.col("prior_fy").fill_null(0),
+        ])
+        .with_columns([
+            (pl.col("selected_fy") + pl.col("prior_fy")).alias("total")
+        ])
+        .sort("total", descending=True)
         .to_pandas()                         
     )
 
-    # print(money_moved_top_n_donors_df_pd)
-    
-    dumbell_chart_fig = figure_instance.create_dumbell_chart_w_logo(money_moved_top_n_donors_df_pd, selected_fy, prior_fy_value)
+    if len(money_moved_top_n_donors_df_pd) > topn_donor_chapter_value:
+        top = money_moved_top_n_donors_df_pd.head(topn_donor_chapter_value)
+        other = money_moved_top_n_donors_df_pd.iloc[topn_donor_chapter_value:]
+        other_row = pd.DataFrame({
+            "pledge_donor_chapter": ["Other"],
+            "selected_fy": [other["selected_fy"].sum()],
+            "prior_fy": [other["prior_fy"].sum()],
+            "total": [other["total"].sum()]
+        })
+        top = pd.concat([top, other_row], ignore_index=True)
+    else:
+        top = money_moved_top_n_donors_df_pd
+
+    # Move "Unknown" to bottom after sorting
+    top_sorted = top.sort_values(by="total", ascending=False)
+    top_sorted["sort_key"] = top_sorted.apply(
+        lambda row: -1 if row["pledge_donor_chapter"] == "Unknown" or row["pledge_donor_chapter"] == "Other" else row["total"], axis=1
+    )
+    top_sorted = top_sorted.sort_values(by="sort_key", ascending=False).drop(columns="sort_key")
+
+    # Get the donor chapter ordering for the y-axis
+    donor_order = top_sorted["pledge_donor_chapter"].tolist()[::-1]    
+
+    dumbell_chart_fig = figure_instance.create_dumbell_chart_w_logo(top_sorted, selected_fy, prior_fy_value, donor_order)
 
     #End of Top N Donor Chapter Dumbell Chart
 

@@ -931,8 +931,8 @@ class Figure:
 
         return fig
     
-    def create_dumbell_chart_w_logo(self, df, selected_fy, prior_fy):
-        df = df.sort_values(by = "pledge_donor_chapter")
+    def create_dumbell_chart_w_logo(self, df, selected_fy, prior_fy, donor_order):
+        # df = df.sort_values(by = "pledge_donor_chapter")
 
         fig = go.Figure()
 
@@ -941,16 +941,16 @@ class Figure:
             x=df["prior_fy"],
             y=df["pledge_donor_chapter"],
             mode="markers",
-            name=f"{selected_fy}",
-            marker=dict(color=self.colors["primary"], size=10)
+            name=f"{prior_fy}",
+            marker=dict(color="red", size=10)
         ))
 
         fig.add_trace(go.Scatter(
             x=df["selected_fy"],
             y=df["pledge_donor_chapter"],
             mode="markers",
-            name=f"{prior_fy}",
-            marker=dict(color=self.freq_type_colors.get("Unspecified"), size=10)
+            name=f"{selected_fy}",
+            marker=dict(color="green", size=10)
         ))
 
         for _, row in df.iterrows():
@@ -958,8 +958,11 @@ class Figure:
                 x=[row["prior_fy"], row["selected_fy"]],
                 y=[row["pledge_donor_chapter"], row["pledge_donor_chapter"]],
                 mode="lines",
+                name="",
                 line=dict(color="gray", width=1),
-                showlegend=False
+                showlegend=False,
+                hovertemplate = "%{name}",
+                hoverinfo = "none",
             ))
         
         # Add logos as layout images
@@ -1001,17 +1004,26 @@ class Figure:
                         "layer": "above"
                     })
 
+        hover_template = "<br>".join([
+            "$%{x:,.1f}",
+        ])
+        
+        fig.update_traces(
+            hovertemplate = hover_template,
+        )
+
         # Update layout with adjusted margins and axis placement
         fig.update_layout(
             # title=f"Top Something Donor Chapters - FY", # {selected_fy} vs FY {selected_fy - 1} (YTD Month {selected_fm})",
+            hovermode = "y unified",
             xaxis=dict(
                 title="Amount (USD)",
                 domain=[0.25, 1],  # Increase left margin to 15% for logos
             ),
             yaxis=dict(
                 # title="Donor Chapter",
-                # categoryorder="array",
-                # categoryarray=donor_order,
+                categoryorder="array",
+                categoryarray=donor_order,
                 side="left",  # Ensure y-axis is on the left
                 position=0.25,  # Position y-axis at 15% from left
                 automargin=True  # Automatically adjust margin for labels
