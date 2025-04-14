@@ -1,5 +1,6 @@
 import dash
 from dash import Input, Output, callback, ctx, html, ALL, State, dcc
+import dash_bootstrap_components as dbc
 
 import polars as pl
 import numpy as np
@@ -32,24 +33,6 @@ def layout(**kwargs):
 
 
 @callback(
-    Output("ai-modal", "is_open"),
-    Input({"type": "ai-icon", "chart": ALL}, "n_clicks"),
-    [
-        State("ai-modal", "is_open"),
-    ],
-)
-def toggle_ai_modal(ai_icon_click_list, is_ai_modal_open):
-    triggered_id = ctx.triggered_id
-
-    # Check if the triggered_id is a dictionary and has a "type" key
-    # This is to check if the triggered_id is from the ai-icon
-    if triggered_id and isinstance(triggered_id, dict) and "type" in triggered_id:
-        is_ai_modal_open = not is_ai_modal_open
-
-    return is_ai_modal_open
-
-
-@callback(
     Output("money-moved-card", "children"),
     Output("cf-money-moved-card", "children"),
     Output("money-moved-cumulative-graph", "figure"),
@@ -57,7 +40,7 @@ def toggle_ai_modal(ai_icon_click_list, is_ai_modal_open):
     Output("chapter-dumbell-graph", "figure"),
     # Output("cf-money-moved-cumulative-graph", "figure"),
     # Output("money-moved-mosaic-graph", "figure"),
-    Output("money-moved-heatmap-graph", "figure"),
+    # Output("money-moved-heatmap-graph", "figure"),
     Output("ai-message-store", "data", allow_duplicate = True),
     Input("fy-filter", "value"),
     Input("mm-cf-cumulative-radio-filter", "value"),
@@ -177,13 +160,15 @@ def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_val
         .head(topn_donor_chapter_value)    
         .to_pandas()                         
     )
+
+    # print(money_moved_top_n_donors_df_pd)
     
     dumbell_chart_fig = figure_instance.create_dumbell_chart_w_logo(money_moved_top_n_donors_df_pd, selected_fy, prior_fy_value)
 
     #End of Top N Donor Chapter Dumbell Chart
 
     # Calendar heatmap
-    mm_heatmap_fig = figure_instance.create_calendarplot(money_moved_lf.collect())
+    # mm_heatmap_fig = figure_instance.create_calendarplot(money_moved_lf.collect())
     # End of calendar heatmap
 
     # For AI insight
@@ -193,8 +178,8 @@ def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_val
             ai_insight.append(data_preparer.get_llm_insight(mm_monthly_fig.to_json()))
         # elif chart_insight == "cf-money-moved-cumulative-graph":
         #     ai_insight.append(data_preparer.get_llm_insight(mm_monthly_fig.to_json()))
-        elif chart_insight == "money-moved-heatmap-graph":
-            ai_insight.append(data_preparer.get_llm_insight(mm_heatmap_fig.to_json()))
+        # elif chart_insight == "money-moved-heatmap-graph":
+        #     ai_insight.append(data_preparer.get_llm_insight(mm_heatmap_fig.to_json()))
         elif chart_insight == "recurring-money-moved-bar-graph":
             ai_insight.append(data_preparer.get_llm_insight(reoccuring_vs_onetime_fig.to_json()))
         elif chart_insight == "chapter-dumbell-graph":
@@ -204,7 +189,7 @@ def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_val
 
     new_ai_messages = ai_insight + existing_ai_messages if len(ai_insight) > 0 else existing_ai_messages
 
-    return mm_card, cf_mm_card, mm_monthly_fig, reoccuring_vs_onetime_fig, dumbell_chart_fig, mm_heatmap_fig, new_ai_messages
+    return mm_card, cf_mm_card, mm_monthly_fig, reoccuring_vs_onetime_fig, dumbell_chart_fig, new_ai_messages
 
 
 @callback(
@@ -339,13 +324,101 @@ def update_attrition_rate_line_graph(selected_fy, selected_drilldown_by, ai_icon
     return attrition_rate_line_fig, existing_ai_messages 
 
 @callback(
+    Output("ai-modal", "is_open"),
     Output("ai-output", "children"),
-    Input("ai-message-store", "data")
+    Input("ai-message-store", "data"),
+    Input({"type": "ai-icon", "chart": ALL}, "n_clicks"),
+    State("ai-modal", "is_open"),
 )
-def render_ai_output(messages):
-    return [
+def render_ai_output(messages, ai_icon_click_list, is_ai_modal_open):
+    triggered_id = ctx.triggered_id
+
+    # Check if the triggered_id is a dictionary and has a "type" key
+    # This is to check if the triggered_id is from the ai-icon
+    if triggered_id and isinstance(triggered_id, dict) and "type" in triggered_id:
+        is_ai_modal_open = not is_ai_modal_open
+
+    output_content = [
         html.Div([
             dcc.Markdown(msg),
             html.Hr(style={"margin": "10px 0"})  # ← clean separator
         ]) for msg in messages
+    ]
+
+    return is_ai_modal_open, output_content
+
+
+# @callback(
+#     Output("ai-modal", "is_open"),
+#     Input({"type": "ai-icon", "chart": ALL}, "n_clicks"),
+#     [
+#         State("ai-modal", "is_open"),
+#     ],
+# )
+# def toggle_ai_modal(ai_icon_click_list, is_ai_modal_open):
+#     triggered_id = ctx.triggered_id
+
+#     # Check if the triggered_id is a dictionary and has a "type" key
+#     # This is to check if the triggered_id is from the ai-icon
+#     if triggered_id and isinstance(triggered_id, dict) and "type" in triggered_id:
+#         is_ai_modal_open = not is_ai_modal_open
+
+#     return is_ai_modal_open
+    
+
+@callback(
+    Output("target-form-modal", "is_open"),
+    # Output("target-body-modal", "children"),
+    Input("set-target-button", "n_clicks"),
+    Input("done-target-form-button", "n_clicks"),
+    State("target-form-modal", "is_open"),
+    # State("target-form-data-store", "data")
+)
+def toggle_modal(open_clicks, close_clicks, is_open):
+    if open_clicks or close_clicks:
+        return not is_open
+    return is_open
+
+@callback(
+    Output("target-form-data-store", "data"),
+    Input("done-target-form-button", "n_clicks"),
+    [State(f"input-{key}", "value") for key in data_loader.get_default_target_data()],
+    prevent_initial_call=True
+)
+def update_store(n_clicks, *values):
+    updated_data = dict(zip(data_loader.get_default_target_data().keys(), values))
+    return updated_data
+
+labels = {
+    "money_moved": "Money Moved ($M)",
+    "counterfactual_mm": "Counterfactual MM ($M)",
+    "active_arr": "Active ARR Run Rate ($M)",
+    "pledge_attrition": "Pledge Attrition Rate (%)",
+    "active_donors": "Total number of active donors",
+    "active_pledges": "Total number of active pledges",
+    "chapter_arr": "Chapter ARR ($)",
+    "all_pledges": "All Pledges (active + future)",
+    "future_pledges": "Future Pledges",
+    "future_arr": "Future ARR ($)"
+}
+
+# @callback(
+#     Output("target-form-data-store", "data"),
+#     Input("done-target-form-button", "n_clicks"),
+#     State("target-form-data-store", "data"),
+#     [State(key, "value") for key in labels],
+#     prevent_initial_call=True
+# )
+# def save_data(n_clicks, current_data, *values):
+#     updated = dict(zip(labels.keys(), values))
+#     return {**current_data, **updated}
+
+
+# Helper: Create form inputs
+def create_form(data):
+    return [
+        dbc.Form([
+            dbc.Label(key.replace("_", " ").title()),
+            dbc.Input(id=f"input-{key}", type="number", value=value)
+        ]) for key, value in data.items()
     ]

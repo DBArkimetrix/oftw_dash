@@ -932,7 +932,6 @@ class Figure:
         return fig
     
     def create_dumbell_chart_w_logo(self, df, selected_fy, prior_fy):
-
         df = df.sort_values(by = "pledge_donor_chapter")
 
         fig = go.Figure()

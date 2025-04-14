@@ -4,6 +4,7 @@ import dash_bootstrap_components as dbc
 import dash_draggable
 
 from utils.data_preparer import DataPreparer
+from utils.data_loader import data_loader
 
 data_preparer = DataPreparer()
 
@@ -37,6 +38,44 @@ colors = {
     "highlight": "#F2F2F2",  # Light highlight
     "white": "#FFFFFF",
 }
+
+# default_data = data_loader.get_default_target_data()
+
+labels = {
+    "money_moved": "Money Moved ($M)",
+    "counterfactual_mm": "Counterfactual MM ($M)",
+    "active_arr": "Active ARR Run Rate ($M)",
+    "pledge_attrition": "Pledge Attrition Rate (%)",
+    "active_donors": "Total number of active donors",
+    "active_pledges": "Total number of active pledges",
+    "chapter_arr": "Chapter ARR ($)",
+    "all_pledges": "All Pledges (active + future)",
+    "future_pledges": "Future Pledges",
+    "future_arr": "Future ARR ($)"
+}
+
+# Helper: Create form inputs
+def create_form(data = data_loader.get_default_target_data()):
+    return [
+        html.Div([
+            html.Label(labels.get(key), className="form-label"),
+            dbc.Input(
+                id=f"input-{key}",
+                type="number",
+                value=value,
+                className="form-control text-dark bg-white border"
+            )
+        ], className="mb-3")  # spacing between fields
+        for key, value in data.items()
+    ]
+    # return [
+    #     dbc.Input(
+    #         id=f"input-{key}",
+    #         type="number",
+    #         value=value,
+    #         className="form-control text-dark bg-white border"
+    #     ) for key, value in data.items()
+    # ]
 
 
 def chart_header_title_with_ai(chart_id, title):
@@ -166,39 +205,45 @@ def moneymoved_layout():
                                                                                     ),
                                                                                 ],
                                                                             ),
-                                                                            # html.Div(
-                                                                            #     className="col-lg-4 col-md-4 ",
-                                                                            #     children=[
-                                                                            #         html.Div(
-                                                                            #             className="card h-100",
-                                                                            #             children=[
-                                                                            #                 html.Div(
-                                                                            #                     className="card-body ",
-                                                                            #                     children=[
-                                                                            #                         html.Span(
-                                                                            #                             "Select Payment Platform",
-                                                                            #                             className="d-block fw-medium mb-1",
-                                                                            #                         ),
-                                                                            #                         dcc.Dropdown(
-                                                                            #                             id="payment-platform-filter",
-                                                                            #                             options=[
-                                                                            #                                 dict(
-                                                                            #                                     label=platform,
-                                                                            #                                     value=platform,
-                                                                            #                                 )
-                                                                            #                                 for platform in unique_platforms
-                                                                            #                             ],
-                                                                            #                             placeholder="Payment Platform",
-                                                                            #                             multi=True,
-                                                                            #                             # value=unique_fy[0],
-                                                                            #                             clearable=True,
-                                                                            #                         ),
-                                                                            #                     ],
-                                                                            #                 ),
-                                                                            #             ],
-                                                                            #         ),
-                                                                            #     ],
-                                                                            # ),
+                                                                            html.Div(
+                                                                                className="col-lg-1 col-md-1 ",
+                                                                                children=[
+                                                                                    html.Div(
+                                                                                        className="card h-100",
+                                                                                        children=[
+                                                                                            html.Div(
+                                                                                                className="card-body ",
+                                                                                                children=[
+                                                                                                    html.Div(
+                                                                                                        className="d-flex justify-content-end mt-3",
+                                                                                                        children=[
+                                                                                                            dbc.Button(
+                                                                                                                "Set Target",
+                                                                                                                id="set-target-button",
+                                                                                                                color="primary",
+                                                                                                                className="me-2",
+                                                                                                                n_clicks=0,
+                                                                                                            ),
+                                                                                                            dbc.Modal(
+                                                                                                                [
+                                                                                                                    dbc.ModalHeader(dbc.ModalTitle("Edit Targets")),
+                                                                                                                    dbc.ModalBody(create_form()),
+                                                                                                                    dbc.ModalFooter(
+                                                                                                                        dbc.Button("Done", id="done-target-form-button", className="ms-auto", n_clicks=0)
+                                                                                                                    ),
+                                                                                                                ],
+                                                                                                                id="target-form-modal",
+                                                                                                                is_open=False,
+                                                                                                            ),
+                                                                                                            dcc.Store(id='target-form-data-store', data=data_loader.get_default_target_data()),
+                                                                                                        ],
+                                                                                                    )
+                                                                                                ],
+                                                                                            ),
+                                                                                        ],
+                                                                                    ),
+                                                                                ],
+                                                                            ),
                                                                             # html.Div(
                                                                             #     className="col-lg-4 col-md-4 ",
                                                                             #     children=[
@@ -781,7 +826,73 @@ def moneymoved_layout():
                                                                             ),
                                                                         ],
                                                                     ),
-                                                                    html.Div(
+                                                                    # html.Div(
+                                                                    #     className="col-xxl-6 col-md-6 col-xs-12 col-sm-12 col-xl-12 ",
+                                                                    #     children=[
+                                                                    #         html.Div(
+                                                                    #             className="card h-100",
+                                                                    #             children=[
+                                                                    #                 html.Div(
+                                                                    #                     className="card-body",
+                                                                    #                     children=[
+                                                                    #                         html.Div(
+                                                                    #                             className="card-title d-flex align-items-center mb-1",
+                                                                    #                             children=[
+                                                                    #                                 html.Div(
+                                                                    #                                     className="avatar me-2",
+                                                                    #                                     children=[
+                                                                    #                                         html.Span(
+                                                                    #                                             className="avatar-initial rounded-2 bg-label-danger",
+                                                                    #                                             children=[
+                                                                    #                                                 html.I(
+                                                                    #                                                     className="bx bx-trending-up bx-lg text-danger"
+                                                                    #                                                 )
+                                                                    #                                             ],
+                                                                    #                                         )
+                                                                    #                                     ],
+                                                                    #                                 ),
+                                                                    #                                 chart_header_title_with_ai(
+                                                                    #                                     title="Contributions by Day of the Week",
+                                                                    #                                     chart_id="money-moved-heatmap-graph",
+                                                                    #                                 ),
+                                                                    #                                 # html.Div(
+                                                                    #                                 #     children=[
+                                                                    #                                 #         html.H6(
+                                                                    #                                 #             "Contribution by Day of the Week",
+                                                                    #                                 #             className="text-lg mb-3 ml-1",
+                                                                    #                                 #         ),
+                                                                    #                                 #     ],
+                                                                    #                                 # ),
+                                                                    #                             ],
+                                                                    #                         ),
+                                                                    #                         html.Div(
+                                                                    #                             className="table bordered-table mb-0 dataTable",
+                                                                    #                             children=[
+                                                                    #                                 dcc.Graph(
+                                                                    #                                     id="money-moved-heatmap-graph",
+                                                                    #                                     style={
+                                                                    #                                         "backgroundColor": colors[
+                                                                    #                                             "white"
+                                                                    #                                         ],
+                                                                    #                                         "borderRadius": "10px",
+                                                                    #                                         "padding": "15px",
+                                                                    #                                         'height': '100%', 'width': '100%'
+                                                                    #                                         # "boxShadow": "0 0 20px rgba(0, 0, 0, 0.15)",
+                                                                    #                                     },
+                                                                    #                                     config={
+                                                                    #                                         "responsive": True,
+                                                                    #                                     },
+                                                                    #                                 ),
+                                                                    #                             ],
+                                                                    #                         ),
+                                                                    #                     ],
+                                                                    #                 ),
+                                                                                    
+                                                                    #             ],
+                                                                    #         ),
+                                                                    #     ],
+                                                                    # ),
+                                                                     html.Div(
                                                                         className="col-xxl-6 col-md-6 col-xs-12 col-sm-12 col-xl-12 ",
                                                                         children=[
                                                                             html.Div(
@@ -807,8 +918,8 @@ def moneymoved_layout():
                                                                                                         ],
                                                                                                     ),
                                                                                                     chart_header_title_with_ai(
-                                                                                                        title="Contributions by Day of the Week",
-                                                                                                        chart_id="money-moved-heatmap-graph",
+                                                                                                        title="Attrition Rate Trend",
+                                                                                                        chart_id="attrition-rate-line-graph",
                                                                                                     ),
                                                                                                     # html.Div(
                                                                                                     #     children=[
@@ -821,17 +932,44 @@ def moneymoved_layout():
                                                                                                 ],
                                                                                             ),
                                                                                             html.Div(
+                                                                                                className="row",  # Add a row wrapper for proper Bootstrap grid behavior
+                                                                                                children=[
+                                                                                                    html.Div(
+                                                                                                        className="col-md-6 col-12",  # Half width on md and full on smaller screens
+                                                                                                        children=[
+                                                                                                            dcc.Dropdown(
+                                                                                                                id = "attrition-rate-line-drilldown-by-filter",
+                                                                                                                options=[
+                                                                                                                    dict(
+                                                                                                                        label=item[
+                                                                                                                            "label"
+                                                                                                                        ],
+                                                                                                                        value=item[
+                                                                                                                            "value"
+                                                                                                                        ],
+                                                                                                                    )
+                                                                                                                    for item in attrition_drilldown_by
+                                                                                                                ],
+                                                                                                                placeholder="Drilldown by",
+                                                                                                                multi=False,
+                                                                                                                value="",
+                                                                                                                clearable=True,
+                                                                                                            )
+                                                                                                        ],
+                                                                                                    ),
+                                                                                                ],
+                                                                                            ),
+                                                                                            html.Div(
                                                                                                 className="table bordered-table mb-0 dataTable",
                                                                                                 children=[
                                                                                                     dcc.Graph(
-                                                                                                        id="money-moved-heatmap-graph",
+                                                                                                        id="attrition-rate-line-graph",
                                                                                                         style={
                                                                                                             "backgroundColor": colors[
                                                                                                                 "white"
                                                                                                             ],
                                                                                                             "borderRadius": "10px",
                                                                                                             "padding": "15px",
-                                                                                                            'height': '100%', 'width': '100%'
                                                                                                             # "boxShadow": "0 0 20px rgba(0, 0, 0, 0.15)",
                                                                                                         },
                                                                                                         config={
@@ -846,7 +984,6 @@ def moneymoved_layout():
                                                                             ),
                                                                         ],
                                                                     ),
-                                                                    
                                                                 ],
                                                             ),
                                                             html.Div(
@@ -1068,186 +1205,186 @@ def moneymoved_layout():
                                                             html.Div(
                                                                 className="row gy-4 mb-1",
                                                                 children=[
-                                                                    html.Div(
-                                                                        className="col-xxl-6 col-md-6 col-xs-12 col-sm-12 col-xl-12 ",
-                                                                        children=[
-                                                                            html.Div(
-                                                                                className="card h-100",
-                                                                                children=[
-                                                                                    html.Div(
-                                                                                        className="card-body",
-                                                                                        children=[
-                                                                                            html.Div(
-                                                                                                className="card-title d-flex align-items-center mb-1",
-                                                                                                children=[
-                                                                                                    html.Div(
-                                                                                                        className="avatar me-2",
-                                                                                                        children=[
-                                                                                                            html.Span(
-                                                                                                                className="avatar-initial rounded-2 bg-label-danger",
-                                                                                                                children=[
-                                                                                                                    html.I(
-                                                                                                                        className="bx bx-trending-up bx-lg text-danger"
-                                                                                                                    )
-                                                                                                                ],
-                                                                                                            )
-                                                                                                        ],
-                                                                                                    ),
-                                                                                                    chart_header_title_with_ai(
-                                                                                                        title="Attrition Rate Trend",
-                                                                                                        chart_id="attrition-rate-line-graph",
-                                                                                                    ),
-                                                                                                    # html.Div(
-                                                                                                    #     children=[
-                                                                                                    #         html.H6(
-                                                                                                    #             "Contribution by Day of the Week",
-                                                                                                    #             className="text-lg mb-3 ml-1",
-                                                                                                    #         ),
-                                                                                                    #     ],
-                                                                                                    # ),
-                                                                                                ],
-                                                                                            ),
-                                                                                            html.Div(
-                                                                                                className="row",  # Add a row wrapper for proper Bootstrap grid behavior
-                                                                                                children=[
-                                                                                                    html.Div(
-                                                                                                        className="col-md-6 col-12",  # Half width on md and full on smaller screens
-                                                                                                        children=[
-                                                                                                            dcc.Dropdown(
-                                                                                                                id = "attrition-rate-line-drilldown-by-filter",
-                                                                                                                options=[
-                                                                                                                    dict(
-                                                                                                                        label=item[
-                                                                                                                            "label"
-                                                                                                                        ],
-                                                                                                                        value=item[
-                                                                                                                            "value"
-                                                                                                                        ],
-                                                                                                                    )
-                                                                                                                    for item in attrition_drilldown_by
-                                                                                                                ],
-                                                                                                                placeholder="Drilldown by",
-                                                                                                                multi=False,
-                                                                                                                value="",
-                                                                                                                clearable=True,
-                                                                                                            )
-                                                                                                        ],
-                                                                                                    ),
-                                                                                                ],
-                                                                                            ),
-                                                                                            html.Div(
-                                                                                                className="table bordered-table mb-0 dataTable",
-                                                                                                children=[
-                                                                                                    dcc.Graph(
-                                                                                                        id="attrition-rate-line-graph",
-                                                                                                        style={
-                                                                                                            "backgroundColor": colors[
-                                                                                                                "white"
-                                                                                                            ],
-                                                                                                            "borderRadius": "10px",
-                                                                                                            "padding": "15px",
-                                                                                                            # "boxShadow": "0 0 20px rgba(0, 0, 0, 0.15)",
-                                                                                                        },
-                                                                                                        config={
-                                                                                                            "responsive": True,
-                                                                                                        },
-                                                                                                    ),
-                                                                                                ],
-                                                                                            ),
-                                                                                        ],
-                                                                                    ),
-                                                                                ],
-                                                                            ),
-                                                                        ],
-                                                                    ),
+                                                                    # html.Div(
+                                                                    #     className="col-xxl-6 col-md-6 col-xs-12 col-sm-12 col-xl-12 ",
+                                                                    #     children=[
+                                                                    #         html.Div(
+                                                                    #             className="card h-100",
+                                                                    #             children=[
+                                                                    #                 html.Div(
+                                                                    #                     className="card-body",
+                                                                    #                     children=[
+                                                                    #                         html.Div(
+                                                                    #                             className="card-title d-flex align-items-center mb-1",
+                                                                    #                             children=[
+                                                                    #                                 html.Div(
+                                                                    #                                     className="avatar me-2",
+                                                                    #                                     children=[
+                                                                    #                                         html.Span(
+                                                                    #                                             className="avatar-initial rounded-2 bg-label-danger",
+                                                                    #                                             children=[
+                                                                    #                                                 html.I(
+                                                                    #                                                     className="bx bx-trending-up bx-lg text-danger"
+                                                                    #                                                 )
+                                                                    #                                             ],
+                                                                    #                                         )
+                                                                    #                                     ],
+                                                                    #                                 ),
+                                                                    #                                 chart_header_title_with_ai(
+                                                                    #                                     title="Attrition Rate Trend",
+                                                                    #                                     chart_id="attrition-rate-line-graph",
+                                                                    #                                 ),
+                                                                    #                                 # html.Div(
+                                                                    #                                 #     children=[
+                                                                    #                                 #         html.H6(
+                                                                    #                                 #             "Contribution by Day of the Week",
+                                                                    #                                 #             className="text-lg mb-3 ml-1",
+                                                                    #                                 #         ),
+                                                                    #                                 #     ],
+                                                                    #                                 # ),
+                                                                    #                             ],
+                                                                    #                         ),
+                                                                    #                         html.Div(
+                                                                    #                             className="row",  # Add a row wrapper for proper Bootstrap grid behavior
+                                                                    #                             children=[
+                                                                    #                                 html.Div(
+                                                                    #                                     className="col-md-6 col-12",  # Half width on md and full on smaller screens
+                                                                    #                                     children=[
+                                                                    #                                         dcc.Dropdown(
+                                                                    #                                             id = "attrition-rate-line-drilldown-by-filter",
+                                                                    #                                             options=[
+                                                                    #                                                 dict(
+                                                                    #                                                     label=item[
+                                                                    #                                                         "label"
+                                                                    #                                                     ],
+                                                                    #                                                     value=item[
+                                                                    #                                                         "value"
+                                                                    #                                                     ],
+                                                                    #                                                 )
+                                                                    #                                                 for item in attrition_drilldown_by
+                                                                    #                                             ],
+                                                                    #                                             placeholder="Drilldown by",
+                                                                    #                                             multi=False,
+                                                                    #                                             value="",
+                                                                    #                                             clearable=True,
+                                                                    #                                         )
+                                                                    #                                     ],
+                                                                    #                                 ),
+                                                                    #                             ],
+                                                                    #                         ),
+                                                                    #                         html.Div(
+                                                                    #                             className="table bordered-table mb-0 dataTable",
+                                                                    #                             children=[
+                                                                    #                                 dcc.Graph(
+                                                                    #                                     id="attrition-rate-line-graph",
+                                                                    #                                     style={
+                                                                    #                                         "backgroundColor": colors[
+                                                                    #                                             "white"
+                                                                    #                                         ],
+                                                                    #                                         "borderRadius": "10px",
+                                                                    #                                         "padding": "15px",
+                                                                    #                                         # "boxShadow": "0 0 20px rgba(0, 0, 0, 0.15)",
+                                                                    #                                     },
+                                                                    #                                     config={
+                                                                    #                                         "responsive": True,
+                                                                    #                                     },
+                                                                    #                                 ),
+                                                                    #                             ],
+                                                                    #                         ),
+                                                                    #                     ],
+                                                                    #                 ),
+                                                                    #             ],
+                                                                    #         ),
+                                                                    #     ],
+                                                                    # ),
 
-                                                                    html.Div(
-                                                                        className="col-xxl-6 col-md-6 col-xs-12 col-sm-12 col-xl-12 ",
-                                                                        children=[
-                                                                            html.Div(
-                                                                                className="card h-100",
-                                                                                children=[
-                                                                                    html.Div(
-                                                                                        className="card-body",
-                                                                                        children=[
-                                                                                            html.Div(
-                                                                                                className="card-title d-flex align-items-center mb-1",
-                                                                                                children=[
-                                                                                                    html.Div(
-                                                                                                        className="avatar me-2",
-                                                                                                        children=[
-                                                                                                            html.Span(
-                                                                                                                className="avatar-initial rounded-2 bg-label-danger",
-                                                                                                                children=[
-                                                                                                                    html.I(
-                                                                                                                        className="bx bx-trending-up bx-lg text-danger"
-                                                                                                                    )
-                                                                                                                ],
-                                                                                                            )
-                                                                                                        ],
-                                                                                                    ),
-                                                                                                    chart_header_title_with_ai(
-                                                                                                        title="Top Donor Chapters",
-                                                                                                        chart_id="chapter-dumbell-graph",
-                                                                                                    ),
-                                                                                                ],
-                                                                                            ),
-                                                                                            html.Div(
-                                                                                                className="row",  # Add a row wrapper for proper Bootstrap grid behavior
-                                                                                                children=[
-                                                                                                    html.Div(
-                                                                                                        className="col-md-12 col-12",  # Half width on md and full on smaller screens
-                                                                                                        children=[
-                                                                                                        html.Div(
-                                                                                                            className="col-md-12 col-12",  # Half width on md and full on smaller screens
-                                                                                                            children=[
-                                                                                                                html.Div([
-                                                                                                                    html.Label("Top N Donor Chapters:"),
-                                                                                                                    dcc.Slider(
-                                                                                                                        id="topn-chapter-slider",
-                                                                                                                        min=3,
-                                                                                                                        max=50,
-                                                                                                                        step=1,
-                                                                                                                        value=10,
-                                                                                                                        marks={i: str(i) for i in range(3, 51, 3)}
-                                                                                                                    )
-                                                                                                                ], 
-                                                                                                                # style={"width": "40%", "padding": "20px 0"}
-                                                                                                                ),
-                                                                                                            ],
-                                                                                                            # style={
-                                                                                                            #     "minWidth": "250px"
-                                                                                                            # },  # Optional: Prevents dropdown from shrinking too much
-                                                                                                        ),
-                                                                                                        ],
-                                                                                                    ),
-                                                                                                ],
-                                                                                            ),
-                                                                                            html.Div(
-                                                                                                className="table bordered-table mb-0 dataTable",
-                                                                                                children=[
-                                                                                                    dcc.Graph(
-                                                                                                        id="chapter-dumbell-graph",
-                                                                                                        style={
-                                                                                                            "backgroundColor": colors[
-                                                                                                                "white"
-                                                                                                            ],
-                                                                                                            "borderRadius": "10px",
-                                                                                                            "padding": "15px",
-                                                                                                            # "boxShadow": "0 0 10px rgba(0, 0, 0, 0.1)",
-                                                                                                        },
-                                                                                                        config={
-                                                                                                            "responsive": True,
-                                                                                                        },
-                                                                                                    ),
-                                                                                                ],
-                                                                                            ),
-                                                                                        ],
-                                                                                    ),
-                                                                                ],
-                                                                            ),
-                                                                        ],
-                                                                    ),
+                                                                    # html.Div(
+                                                                    #     className="col-xxl-6 col-md-6 col-xs-12 col-sm-12 col-xl-12 ",
+                                                                    #     children=[
+                                                                    #         html.Div(
+                                                                    #             className="card h-100",
+                                                                    #             children=[
+                                                                    #                 html.Div(
+                                                                    #                     className="card-body",
+                                                                    #                     children=[
+                                                                    #                         html.Div(
+                                                                    #                             className="card-title d-flex align-items-center mb-1",
+                                                                    #                             children=[
+                                                                    #                                 html.Div(
+                                                                    #                                     className="avatar me-2",
+                                                                    #                                     children=[
+                                                                    #                                         html.Span(
+                                                                    #                                             className="avatar-initial rounded-2 bg-label-danger",
+                                                                    #                                             children=[
+                                                                    #                                                 html.I(
+                                                                    #                                                     className="bx bx-trending-up bx-lg text-danger"
+                                                                    #                                                 )
+                                                                    #                                             ],
+                                                                    #                                         )
+                                                                    #                                     ],
+                                                                    #                                 ),
+                                                                    #                                 chart_header_title_with_ai(
+                                                                    #                                     title="Top Donor Chapters",
+                                                                    #                                     chart_id="chapter-dumbell-graph",
+                                                                    #                                 ),
+                                                                    #                             ],
+                                                                    #                         ),
+                                                                    #                         html.Div(
+                                                                    #                             className="row",  # Add a row wrapper for proper Bootstrap grid behavior
+                                                                    #                             children=[
+                                                                    #                                 html.Div(
+                                                                    #                                     className="col-md-12 col-12",  # Half width on md and full on smaller screens
+                                                                    #                                     children=[
+                                                                    #                                     html.Div(
+                                                                    #                                         className="col-md-12 col-12",  # Half width on md and full on smaller screens
+                                                                    #                                         children=[
+                                                                    #                                             html.Div([
+                                                                    #                                                 html.Label("Top N Donor Chapters:"),
+                                                                    #                                                 dcc.Slider(
+                                                                    #                                                     id="topn-chapter-slider",
+                                                                    #                                                     min=3,
+                                                                    #                                                     max=50,
+                                                                    #                                                     step=1,
+                                                                    #                                                     value=10,
+                                                                    #                                                     marks={i: str(i) for i in range(3, 51, 3)}
+                                                                    #                                                 )
+                                                                    #                                             ], 
+                                                                    #                                             # style={"width": "40%", "padding": "20px 0"}
+                                                                    #                                             ),
+                                                                    #                                         ],
+                                                                    #                                         # style={
+                                                                    #                                         #     "minWidth": "250px"
+                                                                    #                                         # },  # Optional: Prevents dropdown from shrinking too much
+                                                                    #                                     ),
+                                                                    #                                     ],
+                                                                    #                                 ),
+                                                                    #                             ],
+                                                                    #                         ),
+                                                                    #                         html.Div(
+                                                                    #                             className="table bordered-table mb-0 dataTable",
+                                                                    #                             children=[
+                                                                    #                                 dcc.Graph(
+                                                                    #                                     id="chapter-dumbell-graph",
+                                                                    #                                     style={
+                                                                    #                                         "backgroundColor": colors[
+                                                                    #                                             "white"
+                                                                    #                                         ],
+                                                                    #                                         "borderRadius": "10px",
+                                                                    #                                         "padding": "15px",
+                                                                    #                                         # "boxShadow": "0 0 10px rgba(0, 0, 0, 0.1)",
+                                                                    #                                     },
+                                                                    #                                     config={
+                                                                    #                                         "responsive": True,
+                                                                    #                                     },
+                                                                    #                                 ),
+                                                                    #                             ],
+                                                                    #                         ),
+                                                                    #                     ],
+                                                                    #                 ),
+                                                                    #             ],
+                                                                    #         ),
+                                                                    #     ],
+                                                                    # ),
                                                                 ],
                                                             ),
                                                             # Floating Draggable AI Panel
@@ -1349,7 +1486,7 @@ def moneymoved_layout():
                                                                                 html.Div(
                                                                                     className="text-body txt-white",
                                                                                     children=[
-                                                                                        "© 2025. Crafted by",
+                                                                                        "© 2025.",
                                                                                     ],
                                                                                 ),
                                                                                 html.A(
