@@ -1,4 +1,4 @@
-# How to Run This Awesome Project
+# How to Run This Project
 
 # Check if Poetry available, if not install it
     - curl -sSL https://install.python-poetry.org | python3 -\n
