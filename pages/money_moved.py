@@ -8,8 +8,24 @@ import plotly.graph_objects as go
 from utils.data_loader import data_loader
 from utils.data_preparer import DataPreparer
 from utils.figure import Figure
+from utils.dumbbell_with_logos import create_dumbell_chart_with_logos
+from utils.logo_utils import get_logo_as_base64, find_best_logo_match
 
 from pages.layouts import moneymoved_layout
+
+import json
+from pathlib import Path
+
+# Load logo mappings from file
+logo_dir = Path("/home/dhb/dash_oftp/downloaded_logos")
+mapping_file = logo_dir / "logo_mapping.json"
+
+if mapping_file.exists():
+    with open(mapping_file, "r") as f:
+        logo_mapping = json.load(f)
+else:
+    logo_mapping = {}
+
 
 dash.register_page(__name__, path = '/')
 
@@ -158,27 +174,15 @@ def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_val
 
     # Top N Donor Chapter Dumbell Chart (Selected FY vs Prior FY)
     prior_fy_value = f"FY{int(selected_fy[2:6]) - 1}-{int(selected_fy[7:]) - 1}"
-    dumbell_chart_filters = [("payment_date_fy", "in", [selected_fy, prior_fy_value])]
-    money_moved_top_n_donors_df_pd = (data_preparer.filter_data("merged", dumbell_chart_filters)
-        .collect()
-        .pivot(
-            values="payment_amount_usd",  # Replace with the column you want to aggregate
-            index=["pledge_donor_chapter"],  # Replace with the columns you want as index
-            on="payment_date_fy",
-            aggregate_function="sum"  # Replace with the aggregation function you need
-        )    
-        .rename({
-            selected_fy: "selected_fy",
-            prior_fy_value: "prior_fy"
-        })
-        .filter(pl.col("pledge_donor_chapter").is_not_null())
-        .filter(pl.col("selected_fy").is_not_null())
-        .sort("selected_fy", descending=True)
-        .head(topn_donor_chapter_value)    
-        .to_pandas()                         
-    )
     
-    dumbell_chart_fig = figure_instance.create_dumbell_chart_w_logo(money_moved_top_n_donors_df_pd, selected_fy, prior_fy_value)
+    # New section 
+    dumbell_chart_fig = create_dumbell_chart_with_logos(
+        data_preparer=data_preparer,
+        selected_fy=selected_fy,
+        prior_fy_value=prior_fy_value,
+        top_n=topn_donor_chapter_value,
+        logo_mapping=logo_mapping  # optional, or add inside the helper later
+    )
 
     #End of Top N Donor Chapter Dumbell Chart
 
