@@ -49,6 +49,20 @@ class DataLoader:
             raise ValueError(f"Dataset '{dataset_name}' not found.")
         return self.dataframes[dataset_name]
 
+    def get_default_target_data(self):
+        return {
+            "money_moved": 1_800_000,
+            "counterfactual_mm": 1_260_000,
+            "active_arr": 1_200_000,
+            "pledge_attrition": 18,
+            "active_donors": 1200,
+            "active_pledges": 850,
+            "chapter_arr": 670000,
+            "all_pledges": 1850,
+            "future_pledges": 1000,
+            "future_arr": 600000
+        }
+
 parquet_files = {
     "merged": "merged.parquet",
     "pledges": "pledges.parquet",
