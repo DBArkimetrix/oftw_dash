@@ -7,6 +7,8 @@ from dash import html
 import dash_ag_grid as dag
 import dash_bootstrap_components as dbc
 
+import collections
+
 import math
 import polars as pl
 import pandas as pd
@@ -609,6 +611,103 @@ class Figure:
             
         return fig
     
+    def create_active_pledge_arr_sankey(self, df: pl.DataFrame, view_mode: str = "actual", total_target: float = TOTAL_TARGET) -> go.Figure:
+        # Group and compute actuals
+        grouped = df.group_by(["pledge_chapter_type", "pledge_frequency"]).agg(
+            pl.col("pledge_contribution_arr_usd").sum().alias("actual_arr")
+        ).to_pandas()
+
+        # Compute targets and gaps if in target mode
+        if view_mode == "target":
+            total_actual = grouped["actual_arr"].sum()
+            grouped["target_arr"] = (grouped["actual_arr"] / total_actual) * total_target
+            grouped["gap_arr"] = (grouped["target_arr"] - grouped["actual_arr"]).clip(lower=0)
+
+        # Prepare lookup dicts
+        chapter_actuals = grouped.groupby("pledge_chapter_type")["actual_arr"].sum().to_dict()
+        freq_actuals = grouped.groupby("pledge_frequency")["actual_arr"].sum().to_dict()
+        sink_actual = grouped["actual_arr"].sum()
+        gap_total = grouped["gap_arr"].sum() if view_mode == "target" and "gap_arr" in grouped else 0
+
+        # Label nodes with $ values
+        chapter_labels = [f"{ch}\n${chapter_actuals[ch]:,.1f}" for ch in chapter_actuals]
+        freq_labels = [f"{fr}\n${freq_actuals[fr]:,.1f}" for fr in freq_actuals]
+        sink_labels = (
+            [f"Actual ARR\n${sink_actual:,.1f}"] if view_mode == "actual"
+            else [f"Actual ARR\n${sink_actual:,.1f}", f"Gap to Target\n${gap_total:,.1f}"]
+        )
+
+        all_labels = chapter_labels + freq_labels + sink_labels
+        node_idx = {label: idx for idx, label in enumerate(all_labels)}
+
+        sources, targets, values = [], [], []
+
+        # Build source to frequency flows
+        for _, row in grouped.iterrows():
+            ch_label = f"{row['pledge_chapter_type']}\n${chapter_actuals[row['pledge_chapter_type']]:,.1f}"
+            fr_label = f"{row['pledge_frequency']}\n${freq_actuals[row['pledge_frequency']]:,.1f}"
+            flow_value = row["actual_arr"] if view_mode == "actual" else row["actual_arr"] + row["gap_arr"]
+
+            sources.append(node_idx[ch_label])
+            targets.append(node_idx[fr_label])
+            values.append(flow_value)
+
+        # Frequency to sink flows
+        for fr in freq_actuals:
+            fr_label = f"{fr}\n${freq_actuals[fr]:,.1f}"
+            if freq_actuals[fr] > 0:
+                sources.append(node_idx[fr_label])
+                targets.append(node_idx[f"Actual ARR\n${sink_actual:,.1f}"])
+                values.append(freq_actuals[fr])
+            if view_mode == "target" and fr in grouped["pledge_frequency"].values:
+                gap_val = grouped[grouped["pledge_frequency"] == fr]["gap_arr"].sum()
+                if gap_val > 0:
+                    sources.append(node_idx[fr_label])
+                    targets.append(node_idx[f"Gap to Target\n${gap_total:,.1f}"])
+                    values.append(gap_val)
+
+        # Define node colors
+        node_colors = [
+            "#006466" if "\n$" in label and label.split("\n")[0] in chapter_actuals else
+            "#0B525B" if "\n$" in label and label.split("\n")[0] in freq_actuals else
+            "#2D6A4F" if "Actual ARR" in label else
+            "#D00000" if "Gap to Target" in label else
+            "#ccc"
+            for label in all_labels
+        ]
+
+        # Create Sankey figure
+        fig = go.Figure(data=[go.Sankey(
+            node=dict(
+                pad=15,
+                thickness=20,
+                label=all_labels,
+                color=node_colors,
+                hovertemplate="<b>%{label}</b><extra></extra>",
+            ),
+            link=dict(
+                source=sources,
+                target=targets,
+                value=values,
+                color="rgba(0,100,100,0.3)",
+                hovertemplate="<b>Flow</b>: %{source.label} → %{target.label}<extra></extra>",
+            ),
+        )])
+
+        # Layout
+        fig.update_layout(
+            title=(
+                "Annualized Run Rate Flow " +
+                (f"(What it would take to reach ${total_target/1e6:.1f}M)" if view_mode == "target" else "") +
+                " : Chapter Type → Frequency → " +
+                ("Current ARR" if view_mode == "actual" else "Current ARR & Remaining")
+            ),
+            font_size=12,
+            margin=dict(t=30, l=10, r=10, b=10),
+        )
+
+        return fig
+
     def create_attrition_rate_trendline(self, attrition_lf, selected_drilldown_by):
 
         lf = attrition_lf
@@ -757,97 +856,6 @@ class Figure:
             # ),
         )
             
-        return fig
-    
-    # Define the Sankey generator function
-    def create_active_pledge_arr_sankey(self, df: pl.DataFrame, view_mode: str = "actual", total_target: float = TOTAL_TARGET) -> go.Figure:
-
-        grouped = df.group_by(["pledge_chapter_type", "pledge_frequency"]).agg(
-            pl.col("pledge_contribution_arr_usd").sum().alias("actual_arr")
-        ).to_pandas()
-
-        if view_mode == "target":
-            total_actual = grouped["actual_arr"].sum()
-            grouped["target_arr"] = (grouped["actual_arr"] / total_actual) * total_target
-            grouped["gap_arr"] = (grouped["target_arr"] - grouped["actual_arr"]).clip(lower=0)
-
-        chapters = grouped["pledge_chapter_type"].unique().tolist()
-        freqs = grouped["pledge_frequency"].unique().tolist()
-        sinks = ["Actual ARR"] if view_mode == "actual" else ["Actual ARR", "Gap to Target"]
-        all_nodes = chapters + freqs + sinks
-        node_idx = {label: idx for idx, label in enumerate(all_nodes)}
-
-        sources, targets, values = [], [], []
-
-        for _, row in grouped.iterrows():
-            ch = row["pledge_chapter_type"]
-            fr = row["pledge_frequency"]
-            actual = row["actual_arr"]
-
-            sources.append(node_idx[ch])
-            targets.append(node_idx[fr])
-            values.append(actual if view_mode == "actual" else actual + row["gap_arr"])
-
-        flow_to_actual = grouped.groupby("pledge_frequency")["actual_arr"].sum().to_dict()
-
-        flow_to_gap = {}
-        if view_mode == "target" and "gap_arr" in grouped.columns:
-            flow_to_gap = grouped.groupby("pledge_frequency")["gap_arr"].sum().to_dict()
-
-        for fr in freqs:
-            actual_val = flow_to_actual.get(fr, 0)
-            gap_val = flow_to_gap.get(fr, 0)
-
-            if actual_val > 0:
-                sources.append(node_idx[fr])
-                targets.append(node_idx["Actual ARR"])
-                values.append(actual_val)
-
-            if view_mode == "target" and gap_val > 0:
-                sources.append(node_idx[fr])
-                targets.append(node_idx["Gap to Target"])
-                values.append(gap_val)
-
-        fig = go.Figure(data=[go.Sankey(
-            node=dict(
-                pad=15,
-                thickness=20,
-                label=all_nodes,
-                color=[
-                    "#006466" if n in chapters else
-                    "#0B525B" if n in freqs else
-                    "#2D6A4F" if n == "Actual ARR" else
-                    "#D00000" if n == "Gap to Target" else
-                    "#ccc" for n in all_nodes
-                ],
-                hovertemplate=(
-                    "<b>%{label}</b><br>" +
-                    "Total Value Through Node: $%{value:,.3s}<extra></extra>"
-                )
-            ),
-            link=dict(
-                source=sources,
-                target=targets,
-                value=values,
-                hovertemplate=(
-                    "<b>Flow</b>: %{source.label} → %{target.label}<br>" +
-                    "ARR Amount: <b>$%{value:,.3s}</b><extra></extra>"
-                ),
-                color="rgba(0,100,100,0.3)"
-            ),
-        )])
-
-        fig.update_layout(
-            title=(
-                "Annualized Run Rate Flow " + 
-                (f"(What it would take to reach ${total_target/1e6:.1f}M)" if view_mode == "target" else "") +
-                " : Chapter Type → Frequency → " +
-                ("Current ARR" if view_mode == "actual" else f"Current ARR & Remaining")
-            ),
-            font_size=12,
-            margin=dict(t=30, l=10, r=10, b=10),
-        )
-
         return fig
     
     def create_reoccuring_vs_onetime_bar_graph(self, df):

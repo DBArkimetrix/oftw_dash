@@ -1062,6 +1062,7 @@ def moneymoved_layout():
                                                                                                             ],
                                                                                                             "borderRadius": "10px",
                                                                                                             "padding": "15px",
+                                                                                                            "minHeight": "450px",
                                                                                                             # "boxShadow": "0 0 20px rgba(0, 0, 0, 0.15)",
                                                                                                         },
                                                                                                         config={
