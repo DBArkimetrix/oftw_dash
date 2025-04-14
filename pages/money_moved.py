@@ -37,12 +37,17 @@ def layout(**kwargs):
     Output("active-donors-card", "children"),
     Output("active-pledges-card", "children"),
     Input("fy-filter", "value"),
+    Input("target-form-data-store", "data"),
 )
-def active_donors_pledges_card(selected_fy):
+def active_donors_pledges_card(selected_fy, target_form_data):
     filters = []     
 
-    ACTIVE_DONORS_TARGET = 1200
-    ACTIVE_PLEDGES_TARGET = 850
+    if len(target_form_data) > 0:
+        ACTIVE_DONORS_TARGET = target_form_data.get("active_donors", 1200)
+        ACTIVE_PLEDGES_TARGET = target_form_data.get("active_pledges", 850)
+    else:
+        ACTIVE_DONORS_TARGET = 1200
+        ACTIVE_PLEDGES_TARGET = 850
 
     if selected_fy:
         filters.append(("pledge_starts_at_fy", "==", selected_fy))
@@ -370,7 +375,7 @@ def update_active_pledge_arr_sankey(selected_fy, selected_view_mode, target_form
 
 
     total_arr_value = pledge_active_arr_df.select(pl.sum("pledge_contribution_arr_usd")).item()
-    active_pledge_arr_card = figure_instance.create_kpi_card(total_arr_value, goal = 1_200_000, body_text = "Active Annualized Run Rate")
+    active_pledge_arr_card = figure_instance.create_kpi_card(total_arr_value, goal = arr_target, body_text = "Active Annualized Run Rate")
 
     # Sankey graph
     active_pledge_arr_sankey_fig = figure_instance.create_active_pledge_arr_sankey(pledge_active_arr_df, selected_view_mode, arr_target)
@@ -394,11 +399,12 @@ def update_active_pledge_arr_sankey(selected_fy, selected_view_mode, target_form
     Output("ai-message-store", "data", allow_duplicate = True),
     Input("fy-filter", "value"),
     Input("attrition-rate-line-drilldown-by-filter", "value"),
+    Input("target-form-data-store", "data"),
     Input({"type": "ai-icon", "chart": ALL}, "n_clicks"),
     State("ai-message-store", "data"),
     prevent_initial_call = "initial_duplicate"
 )
-def update_attrition_rate_line_graph(selected_fy, selected_drilldown_by, ai_icon_clicks_list, existing_ai_messages):
+def update_attrition_rate_line_graph(selected_fy, selected_drilldown_by, target_form_data, ai_icon_clicks_list, existing_ai_messages):
     triggered_id = ctx.triggered_id
     chart_insight = None
 
@@ -407,8 +413,12 @@ def update_attrition_rate_line_graph(selected_fy, selected_drilldown_by, ai_icon
     if triggered_id and isinstance(triggered_id, dict) and "type" in triggered_id:
         chart_insight = triggered_id.get("chart")
 
+    if len(target_form_data) > 0:
+        ATTRITION_RATE_TARGET = target_form_data.get("pledge_attrition", 18)
+    else:
+        ATTRITION_RATE_TARGET = 18
+
     filters = []
-    target = 18/100
 
     if selected_fy:
         filters.append(("pledge_starts_at_fy", "==", selected_fy))
@@ -424,7 +434,6 @@ def update_attrition_rate_line_graph(selected_fy, selected_drilldown_by, ai_icon
     attrition_rate_line_fig = figure_instance.create_attrition_rate_trendline(attrition_lf, selected_drilldown_by)
 
     # Attrition rate kpi card
-    ATTRITION_RATE_TARGET = 18
     yearly_attrition_rate = (attrition_lf
         .group_by(["pledge_starts_at_fy"])
         .agg([
