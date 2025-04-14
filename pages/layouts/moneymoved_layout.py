@@ -17,6 +17,8 @@ unique_chapter_types = data_preparer.get_col_unique_values(
     "merged", "pledge_chapter_type"
 )
 
+last_payment_date = data_preparer.get_column_max_value("payments", "payment_date")
+
 drilldown_by = [
     {"label": "Payment Platform", "value": "payment_platform"},
     {"label": "Source (Chapter Types)", "value": "pledge_chapter_type"},
@@ -54,28 +56,7 @@ labels = {
     "future_arr": "Future ARR ($)"
 }
 
-# Helper: Create form inputs
-def create_form(data = data_loader.get_default_target_data()):
-    return [
-        html.Div([
-            html.Label(labels.get(key), className="form-label"),
-            dbc.Input(
-                id=f"input-{key}",
-                type="number",
-                value=value,
-                className="form-control text-dark bg-white border"
-            )
-        ], className="mb-3")  # spacing between fields
-        for key, value in data.items()
-    ]
-    # return [
-    #     dbc.Input(
-    #         id=f"input-{key}",
-    #         type="number",
-    #         value=value,
-    #         className="form-control text-dark bg-white border"
-    #     ) for key, value in data.items()
-    # ]
+fiscal_year_options = list(range(2025, 2046))
 
 # # Read the HTML file content
 # with open("./about.html", "r") as f:
@@ -230,7 +211,17 @@ def moneymoved_layout():
                                                                                                             dbc.Modal(
                                                                                                                 [
                                                                                                                     dbc.ModalHeader(dbc.ModalTitle("Edit Targets")),
-                                                                                                                    dbc.ModalBody(create_form()),
+                                                                                                                    dbc.ModalBody([
+                                                                                                                        dcc.Dropdown(
+                                                                                                                            id="target-form-fy-dropdown",
+                                                                                                                            options=[{"label": str(yr-1) + '-' + str(yr), "value": yr} for yr in fiscal_year_options],
+                                                                                                                            placeholder="Select Fiscal Year",
+                                                                                                                            style={"width": "200px", "marginRight": "10px"}
+                                                                                                                        ),
+                                                                                                                        # dbc.Button("Edit Targets", id="edit-btn", n_clicks=0,),
+                                                                                                                        html.Div(id="target-form"),
+                                                                                                                        # create_form()
+                                                                                                                    ]),
                                                                                                                     dbc.ModalFooter(
                                                                                                                         dbc.Button("Done", id="done-target-form-button", className="ms-auto", n_clicks=0)
                                                                                                                     ),
@@ -239,6 +230,54 @@ def moneymoved_layout():
                                                                                                                 is_open=False,
                                                                                                             ),
                                                                                                             dcc.Store(id='target-form-data-store', data=data_loader.get_default_target_data()),
+                                                                                                        ],
+                                                                                                    )
+                                                                                                ],
+                                                                                            ),
+                                                                                        ],
+                                                                                    ),
+                                                                                ],
+                                                                            ),
+                                                                            html.Div(
+                                                                                className="col-lg-1 col-md-1 ",
+                                                                                children=[
+                                                                                    html.Div(
+                                                                                        className="card h-100",
+                                                                                        children=[
+                                                                                            html.Div(
+                                                                                                className="card-body ",
+                                                                                                children=[
+                                                                                                    html.Div(
+                                                                                                        className="d-flex justify-content-end mt-3",
+                                                                                                        children=[
+                                                                                                            html.Span(
+                                                                                                                "Amounts are in USD",
+                                                                                                                className="d-block fw-medium mb-1",
+                                                                                                            ),
+                                                                                                        ],
+                                                                                                    )
+                                                                                                ],
+                                                                                            ),
+                                                                                        ],
+                                                                                    ),
+                                                                                ],
+                                                                            ),
+                                                                            html.Div(
+                                                                                className="col-lg-1 col-md-1 ",
+                                                                                children=[
+                                                                                    html.Div(
+                                                                                        className="card h-100",
+                                                                                        children=[
+                                                                                            html.Div(
+                                                                                                className="card-body ",
+                                                                                                children=[
+                                                                                                    html.Div(
+                                                                                                        className="d-flex justify-content-end mt-3",
+                                                                                                        children=[
+                                                                                                            html.Span(
+                                                                                                                f"Payment Data Up to {last_payment_date:%dth %b, %Y}",
+                                                                                                                className="d-block fw-medium mb-1",
+                                                                                                            ),
                                                                                                         ],
                                                                                                     )
                                                                                                 ],
@@ -397,6 +436,128 @@ def moneymoved_layout():
                                                                                                     html.Div(
                                                                                                         className="card-body right-bg-green h-100",
                                                                                                         id="active-pledge-arr-card",
+                                                                                                    )
+                                                                                                ],
+                                                                                            ),
+                                                                                        ],
+                                                                                    )
+                                                                                ],
+                                                                            )
+                                                                        ],
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                            html.Div(
+                                                                className="row gy-4 mt-1 mb-2",
+                                                                children=[
+                                                                    html.Div(
+                                                                        className="col-lg-4 col-md-4 align-self-end order-4",
+                                                                        children=[
+                                                                            html.Div(
+                                                                                className="card back-color-blue",
+                                                                                children=[
+                                                                                    html.Div(
+                                                                                        className="d-flex row",
+                                                                                        children=[
+                                                                                            html.Div(
+                                                                                                className="col-sm-3 col-md-3 text-center text-sm-left",
+                                                                                                children=[
+                                                                                                    html.Div(
+                                                                                                        className="card-body pb-0 d-flex align-items-center text-sm-start text-center",
+                                                                                                        children=[
+                                                                                                            html.Img(
+                                                                                                                src="../../assets/img/illustrations/OFTW-Logomark-Logo.png",
+                                                                                                                height="120",
+                                                                                                                alt="Target User",
+                                                                                                            )
+                                                                                                        ],
+                                                                                                    )
+                                                                                                ],
+                                                                                            ),
+                                                                                            html.Div(
+                                                                                                className="col-sm-9 col-md-9",
+                                                                                                children=[
+                                                                                                    html.Div(
+                                                                                                        className="card-body right-bg-blue h-100",
+                                                                                                        id="attrition-rate-card",
+                                                                                                    )
+                                                                                                ],
+                                                                                            ),
+                                                                                        ],
+                                                                                    )
+                                                                                ],
+                                                                            )
+                                                                        ],
+                                                                    ),
+                                                                    html.Div(
+                                                                        className="col-lg-4 col-md-4  align-self-end order-4",
+                                                                        children=[
+                                                                            html.Div(
+                                                                                className="card back-color-yellow",
+                                                                                children=[
+                                                                                    html.Div(
+                                                                                        className="d-flex row",
+                                                                                        children=[
+                                                                                            html.Div(
+                                                                                                className="col-sm-3 col-md-3 text-center text-sm-left",
+                                                                                                children=[
+                                                                                                    html.Div(
+                                                                                                        className="card-body pb-0  d-flex align-items-center text-sm-start text-center",
+                                                                                                        children=[
+                                                                                                            html.Img(
+                                                                                                                src="../../assets/img/illustrations/OFTW-Logomark-Logo.png",
+                                                                                                                height="120",
+                                                                                                                alt="Target User",
+                                                                                                            )
+                                                                                                        ],
+                                                                                                    )
+                                                                                                ],
+                                                                                            ),
+                                                                                            html.Div(
+                                                                                                className="col-sm-9 col-md-9",
+                                                                                                children=[
+                                                                                                    html.Div(
+                                                                                                        className="card-body right-bg-yellow h-100",
+                                                                                                        id="active-donors-card",
+                                                                                                    )
+                                                                                                ],
+                                                                                            ),
+                                                                                        ],
+                                                                                    )
+                                                                                ],
+                                                                            )
+                                                                        ],
+                                                                    ),
+                                                                    html.Div(
+                                                                        className="col-lg-4 col-md-4  align-self-end order-4",
+                                                                        children=[
+                                                                            html.Div(
+                                                                                className="card back-color-green",
+                                                                                children=[
+                                                                                    html.Div(
+                                                                                        className="d-flex row",
+                                                                                        children=[
+                                                                                            html.Div(
+                                                                                                className="col-sm-3 col-md-3 text-center text-sm-left",
+                                                                                                children=[
+                                                                                                    html.Div(
+                                                                                                        className="card-body pb-0  d-flex align-items-center text-sm-start text-center",
+                                                                                                        children=[
+                                                                                                            html.Img(
+                                                                                                                src="../../assets/img/illustrations/OFTW-Logomark-Logo.png",
+                                                                                                                height="120",
+                                                                                                                alt="Target User",
+                                                                                                            )
+                                                                                                        ],
+                                                                                                    )
+                                                                                                ],
+                                                                                            ),
+                                                                                            html.Div(
+                                                                                                className="col-sm-9 col-md-9",
+                                                                                                children=[
+                                                                                                    html.Div(
+                                                                                                        className="card-body right-bg-green h-100",
+                                                                                                        id="active-pledges-card",
                                                                                                     )
                                                                                                 ],
                                                                                             ),

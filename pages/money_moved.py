@@ -34,6 +34,37 @@ def layout(**kwargs):
 
 
 @callback(
+    Output("active-donors-card", "children"),
+    Output("active-pledges-card", "children"),
+    Input("fy-filter", "value"),
+)
+def active_donors_pledges_card(selected_fy):
+    filters = []     
+
+    ACTIVE_DONORS_TARGET = 1200
+    ACTIVE_PLEDGES_TARGET = 850
+
+    if selected_fy:
+        filters.append(("pledge_starts_at_fy", "==", selected_fy))
+
+    pledges_lf = data_preparer.filter_data("pledges", filters)
+
+    active_donors_value = (pledges_lf
+        .filter(pl.col("pledge_status").is_in(["Active donor", "One-Time"]))
+        .pipe(lambda lf: data_preparer.get_unique_col_count_lf(lf, "pledge_donor_id"))
+    )
+
+    active_pledges_value = (pledges_lf
+        .filter(pl.col("pledge_status").is_in(["Active donor"]))
+        .pipe(lambda lf: data_preparer.get_unique_col_count_lf(lf, "pledge_donor_id"))
+    )
+
+    active_donors_card = figure_instance.create_absolute_value_kpi_card(active_donors_value, goal = ACTIVE_DONORS_TARGET, body_text = "Active Donors")
+    active_pledges_card = figure_instance.create_absolute_value_kpi_card(active_pledges_value, goal = ACTIVE_PLEDGES_TARGET, body_text = "Active Pledges")
+    
+    return active_donors_card, active_pledges_card
+
+@callback(
     Output("money-moved-card", "children"),
     Output("cf-money-moved-card", "children"),
     Output("money-moved-cumulative-graph", "figure"),
@@ -64,6 +95,8 @@ def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_val
         chart_insight = triggered_id.get("chart")
 
     filters = []     
+    prior_fy_value = f"FY{int(selected_fy[2:6]) - 1}-{int(selected_fy[7:]) - 1}"
+    sy_py_filters = [("payment_date_fy", "in", [selected_fy, prior_fy_value])]
 
     fund_raise_target = 1_800_000
     cf_fund_raise_target = 1_260_000
@@ -98,8 +131,9 @@ def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_val
 
 
     # money moved monthly
-    money_moved_ytd_df = (money_moved_lf
-        .group_by(["payment_date_fm", "payment_date_calendar_month", "payment_date_calendar_monthyear"])
+    # dumbell_chart_filters = [("payment_date_fy", "in", [selected_fy, prior_fy_value])]
+    money_moved_ytd_df = (merged_lf
+        .group_by(["payment_date_fy", "payment_date_fm", "payment_date_calendar_month", "payment_date_calendar_monthyear"])
         .agg([
             pl.col("payment_amount_usd").sum().alias("money_moved_monthly"),
             pl.col("payment_cf_amount_usd").sum().alias("cf_money_moved_monthly"),
@@ -109,15 +143,39 @@ def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_val
             pl.cum_sum("money_moved_monthly").alias("money_moved_cumulative"),
             pl.cum_sum("cf_money_moved_monthly").alias("cf_money_moved_cumulative"),
         ])
+        .select(["payment_date_fm", "payment_date_calendar_monthyear", "money_moved_cumulative", "cf_money_moved_cumulative"])
         .collect()
     )
+
+    money_moved_py_df = (data_loader.get_data("merged")
+        .filter(pl.col("payment_date_fy") == prior_fy_value)
+        .filter(~pl.col("payment_portfolio").is_in(["One for the World Discretionary Fund", "One for the World Operating Costs"]))
+        .group_by(["payment_date_fy", "payment_date_fm", "payment_date_calendar_month", "payment_date_calendar_monthyear"])
+        .agg([
+            pl.col("payment_amount_usd").sum().alias("money_moved_monthly"),
+            pl.col("payment_cf_amount_usd").sum().alias("cf_money_moved_monthly"),
+        ])
+        .with_columns([
+            ((fund_raise_target / pl.sum("money_moved_monthly") ) * pl.col("money_moved_monthly")).alias("monthly_target_runrate"),
+            ((cf_fund_raise_target / pl.sum("cf_money_moved_monthly")) * pl.col("cf_money_moved_monthly")).alias("cf_monthly_target_runrate"),
+        ])
+        .sort("payment_date_fm")
+        .with_columns([
+            pl.cum_sum("monthly_target_runrate").alias("money_moved_cumulative"),
+            pl.cum_sum("cf_monthly_target_runrate").alias("cf_money_moved_cumulative"),
+        ])
+        .drop(["money_moved_monthly", "cf_money_moved_monthly"])
+        .collect()
+    )
+
+    # print(money_moved_py_df)
 
     mm_monthly_fig = go.Figure()
 
     if "cf" in selected_amount_type:
-        mm_monthly_fig = figure_instance.create_monthly_mm_graph(money_moved_ytd_df, "cf_money_moved_cumulative", cf_fund_raise_target)
+        mm_monthly_fig = figure_instance.create_monthly_mm_graph(money_moved_ytd_df, "cf_money_moved_cumulative", cf_fund_raise_target, money_moved_py_df)
     else:
-        mm_monthly_fig = figure_instance.create_monthly_mm_graph(money_moved_ytd_df, "money_moved_cumulative", fund_raise_target)
+        mm_monthly_fig = figure_instance.create_monthly_mm_graph(money_moved_ytd_df, "money_moved_cumulative", fund_raise_target, money_moved_py_df)
 
     # mm_mosaic_fig = figure_instance.create_money_mural_mosaic(money_moved_ytd_df)
 
@@ -141,9 +199,8 @@ def update_kpis_graphs(selected_fy, selected_amount_type, topn_donor_chapter_val
     # End of recurring vs one-time bar graph
 
     # Top N Donor Chapter Dumbell Chart (Selected FY vs Prior FY)
-    prior_fy_value = f"FY{int(selected_fy[2:6]) - 1}-{int(selected_fy[7:]) - 1}"
-    dumbell_chart_filters = [("payment_date_fy", "in", [selected_fy, prior_fy_value])]
-    money_moved_top_n_donors_df_pd = (data_preparer.filter_data("merged", dumbell_chart_filters)
+
+    money_moved_top_n_donors_df_pd = (data_preparer.filter_data("merged", sy_py_filters)
         .collect()
         .pivot(
             values="payment_amount_usd",  # Replace with the column you want to aggregate
@@ -315,6 +372,7 @@ def update_active_pledge_arr_sankey(selected_fy, selected_view_mode, ai_icon_cli
 
 
 @callback(
+    Output("attrition-rate-card", "children"),
     Output("attrition-rate-line-graph", "figure"),
     Output("ai-message-store", "data", allow_duplicate = True),
     Input("fy-filter", "value"),
@@ -348,7 +406,21 @@ def update_attrition_rate_line_graph(selected_fy, selected_drilldown_by, ai_icon
 
     attrition_rate_line_fig = figure_instance.create_attrition_rate_trendline(attrition_lf, selected_drilldown_by)
 
-    return attrition_rate_line_fig, existing_ai_messages 
+    # Attrition rate kpi card
+    ATTRITION_RATE_TARGET = 18
+    yearly_attrition_rate = (attrition_lf
+        .group_by(["pledge_starts_at_fy"])
+        .agg([
+            (pl.sum("total_pledge_count") / pl.sum("is_cancelled_count")).alias("attrition_rate"),
+        ])
+        .select("attrition_rate")
+        .collect()
+        .item()
+    )
+
+    attrition_rate_card = figure_instance.create_kpi_card(yearly_attrition_rate, goal = ATTRITION_RATE_TARGET, body_text = "Pledge Attrition Rate", value_type = "%")
+
+    return attrition_rate_card, attrition_rate_line_fig, existing_ai_messages 
 
 @callback(
     Output("ai-modal", "is_open"),
@@ -429,26 +501,33 @@ labels = {
     "future_arr": "Future ARR ($)"
 }
 
-# @callback(
-#     Output("target-form-data-store", "data"),
-#     Input("done-target-form-button", "n_clicks"),
-#     State("target-form-data-store", "data"),
-#     [State(key, "value") for key in labels],
-#     prevent_initial_call=True
-# )
-# def save_data(n_clicks, current_data, *values):
-#     updated = dict(zip(labels.keys(), values))
-#     return {**current_data, **updated}
+# Helper: Create form inputs
+def create_form(data = data_loader.get_default_target_data()):
+    return [
+        html.Div([
+            html.Label(labels.get(key), className="form-label"),
+            dbc.Input(
+                id=f"input-{key}",
+                type="number",
+                value=value,
+                className="form-control text-dark bg-white border"
+            )
+        ], className="mb-3")  # spacing between fields
+        for key, value in data.items()
+    ]
 
+@callback(
+    Output("target-form", "children"),
+    Input("target-form-fy-dropdown", "value"),
+    # Input("edit-btn", "n_clicks"),
+    # State("fy-target-form", "value"),
+    State("target-form-data-store", "data")
+)
+def show_target_form(selected_fy, existing_data):
+    if not selected_fy:
+        return html.Div("Please select a valid Fiscal Year.")
 
-# # Helper: Create form inputs
-# def create_form(data):
-#     return [
-#         dbc.Form([
-#             dbc.Label(key.replace("_", " ").title()),
-#             dbc.Input(id=f"input-{key}", type="number", value=value)
-#         ]) for key, value in data.items()
-#     ]
+    return create_form(existing_data)
 
 
 @callback(

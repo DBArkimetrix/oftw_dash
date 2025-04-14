@@ -119,9 +119,9 @@ class Figure:
 
         return trace
 
-    def create_kpi_card(self, value, goal, body_text = "Funds Raised"):
+    def create_kpi_card(self, value, goal, body_text = "Funds Raised", value_type = "$"):
         return html.Div([
-        html.H3(f"${value:,.2f}", 
+        html.H3(f"${value:,.2f}" if value_type == "$" else f"{value:,.1f}%", 
                 style={
                     'textAlign': 'center',
                     'color': self.colors['primary'],
@@ -133,29 +133,57 @@ class Figure:
                    'textAlign': 'center',
                    'color': self.colors['text']
                }),
-        html.P(f"of ${goal:,} goal ({value/goal:.2%})", 
-               style={
-                   'textAlign': 'center',
-                   'color': self.colors['secondary'],
-                   'fontSize': '14px'
-               })
+        html.P(
+            f"of ${goal:,} Target ({value/goal:.2%})" if value_type == "$" else f" {goal:,}% Target", 
+            style={
+                'textAlign': 'center',
+                'color': self.colors['secondary'],
+                'fontSize': '14px'
+            })
     ])
 
-    def create_monthly_mm_graph(self, df, y_col_name, target):
+    def create_absolute_value_kpi_card(self, value, goal, body_text = "Funds Raised",):
+        return html.Div([
+        html.H3(f"{value:,.2f}", 
+                style={
+                    'textAlign': 'center',
+                    'color': self.colors['primary'],
+                    'marginBottom': '5px',
+                    'fontSize': '28px'
+                }),
+        html.P(body_text, 
+               style={
+                   'textAlign': 'center',
+                   'color': self.colors['text']
+               }),
+        html.P(
+            f"of {goal:,} Target ({value/goal:.2%})", 
+            style={
+                'textAlign': 'center',
+                'color': self.colors['secondary'],
+                'fontSize': '14px'
+            })
+    ])
+
+    def create_monthly_mm_graph(self, df, y_col_name, target, py_df):
         """
         """
 
-        x_vals = df["payment_date_calendar_monthyear"].to_list()
+        x_vals = df["payment_date_fm"].to_list()
         y_vals = df[y_col_name].to_list()
+
+        month_labels = df["payment_date_calendar_monthyear"].to_list()   # For x ticks
 
         current_idx = len(x_vals) - 1
 
         if len(x_vals) < 12:
-            x_vals = x_vals + ["Mar'25", "Apr'25", "May'25", "Jun'25"]     #ISSUE: hardcoded
+            x_vals = x_vals + [9, 10, 11, 12]     # hardcoded
+            month_labels = ["Jul'24", "Aug'24", "Sep'24", "Oct'24", "Nov'24", "Dec'24", "Jan'25", "Feb'25", "Mar'25", "Apr'25", "May'25", "Jun'25"]     # hardcoded
             y_vals = y_vals + [None] * (12 - len(y_vals)) # + [target]
 
         fig = go.Figure()
 
+        # Selected year
         fig.add_trace(
             self.create_line_trace(
                 x_values = x_vals,
@@ -163,15 +191,45 @@ class Figure:
                 markers_mode = "lines+markers+text",
                 marker_size = 10,
                 marker_color = self.colors['primary'],
-                text_values_list = [f"${val:,.2f}" if val is not None else "" for val in y_vals],
+                text_values_list = [f"${val:,.1f}" if val is not None else "" for val in y_vals],
                 text_position = "top left",
-                name_for_legend = "Cumulative Donations",
+                name_for_legend = "Selected FY (Cumulative)",
                 # legend_group = "Cumulative Donations",
                 line_color = self.colors['primary'],
                 line_width = 6,
                 hover_template = "%{text}",
             )
         )
+
+        # PY target run rate line
+        py_x_vals = py_df["payment_date_fm"]
+        py_y_vals = py_df[y_col_name]
+        fig.add_trace(
+            self.create_line_trace(
+                x_values = py_x_vals,
+                y_values = py_y_vals,
+                markers_mode = "lines",
+                # marker_size = 10, 
+                # marker_color = self.colors['secondary'],
+                # text_values_list = [f"${val:,.2f}" if val is not None else "" for val in y_vals],
+                # text_position = "top left",
+                name_for_legend = "Target Run Rate",
+                # legend_group = "Cumulative Donations",
+                line_color = self.colors['secondary'],
+                line_width = 3,
+                line_type = "dot",
+                hover_template = "Target Run Rate(Cumulative)<br>(Based on PY pacing): $%{y:,.1f}<br><extra></extra>",
+            )
+        )
+
+        # fig.add_trace(go.Scatter(
+        #     x=py_df["payment_date_fm"],
+        #     y=py_df[y_col_name],
+        #     mode="lines",
+        #     name="PY Target Run Rate",
+        #     line=dict(dash="dot", color="darkgray", width=2),
+        #     hovertemplate="Target Run Rate: $%{y:,.0f}<br>%{x}<extra></extra>"
+        # ))
 
         # Mark the current position with a distinct marker.
         fig.add_trace(go.Scatter(
@@ -180,6 +238,22 @@ class Figure:
             text = [f"{y_vals[current_idx]/target:,.2%} Achieved"],
             mode = 'markers+text',
             textposition = "bottom right",
+            marker = dict(
+                color = 'white',
+                size = 13,
+                line = dict(width = 3, color = self.colors['primary'])
+            ),
+            hoverinfo = 'none',
+            showlegend = False
+        ))
+
+        # Mark the target position with a distinct marker.
+        fig.add_trace(go.Scatter(
+            x = [py_x_vals[-1]],
+            y = [py_y_vals[-1]],
+            text = [f"Target: ${target:,.1f}"],
+            mode = 'markers+text',
+            textposition = "top left",
             marker = dict(
                 color = 'white',
                 size = 13,
@@ -254,7 +328,7 @@ class Figure:
             xaxis = dict(
                 # title = "Month",
                 tickvals = x_vals,
-                ticktext = x_vals,
+                ticktext = month_labels,
                 showgrid = False,
                 zeroline = False,
                 showline = True,

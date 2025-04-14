@@ -62,6 +62,19 @@ class DataPreparer:
         """
         return lf.filter(pl.col(column_name).is_not_null()).select(pl.col(column_name).n_unique()).collect().item()
     
+    def get_column_max_value(self, dataset_name, column_name):
+        """
+        Returns the maximum value of a given column in a DataFrame.
+
+        Parameters:
+        lf (DataFrame): The DataFrame containing the column.
+        column_name (str): The name of the column to get the maximum value from.
+
+        Returns:
+        list: A list of unique values in the specified column.
+        """
+        return data_loader.get_data(dataset_name).filter(pl.col(column_name).is_not_null()).select(pl.col(column_name).max()).collect().item()
+
     def filter_data(self, dataset_name, filters = None, columns = None, logic = "AND"):
         """
         Generic method to filter and select columns from a dataset.
