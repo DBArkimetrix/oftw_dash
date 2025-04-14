@@ -18,6 +18,7 @@ python-dotenv = "^1.1.0"
 openai = "^1.72.0"
 dash-draggable = "^0.1.2"
 cairosvg = "^2.7.1"
+gunicorn = "^23.0.0"
 
 
 [build-system]

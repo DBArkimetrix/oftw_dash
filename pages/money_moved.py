@@ -334,8 +334,8 @@ def update_mm_monthly_trendline(selected_fy, selected_amount_type, selected_dril
     if chart_insight:
         if chart_insight =="money-moved-line-graph":
             ai_insight.append(data_preparer.get_llm_insight(mm_monthly_trendline_fig.to_json()))
-        # else:
-        #     ai_insight.append("No insight available for this chart.")
+        else:
+            ai_insight.append("No insight available for this chart.")
 
     new_ai_messages = ai_insight + existing_ai_messages if len(ai_insight) > 0 else existing_ai_messages
 
@@ -444,34 +444,52 @@ def update_attrition_rate_line_graph(selected_fy, selected_drilldown_by, target_
         .item()
     )
 
+    # KPI card
     attrition_rate_card = figure_instance.create_kpi_card(yearly_attrition_rate, goal = ATTRITION_RATE_TARGET, body_text = "Pledge Attrition Rate", value_type = "%")
 
-    return attrition_rate_card, attrition_rate_line_fig, existing_ai_messages 
+    # For AI insight
+    ai_insight = []
+    if chart_insight:
+        if chart_insight =="attrition-rate-line-graph":
+            ai_insight.append(data_preparer.get_llm_insight(attrition_rate_line_fig.to_json()))
+        # else:
+        #     ai_insight.append("No insight available for this chart.")
+
+    new_ai_messages = ai_insight + existing_ai_messages if len(ai_insight) > 0 else existing_ai_messages
+
+    return attrition_rate_card, attrition_rate_line_fig, new_ai_messages 
 
 @callback(
     Output("ai-modal", "is_open"),
-    Output("ai-output", "children"),
-    Input("ai-message-store", "data"),
     Input({"type": "ai-icon", "chart": ALL}, "n_clicks"),
     State("ai-modal", "is_open"),
+    prevent_initial_call=True
 )
-def render_ai_output(messages, ai_icon_click_list, is_ai_modal_open):
+def open_modal_on_click(ai_icon_clicks, is_open):
     triggered_id = ctx.triggered_id
 
-    # Check if the triggered_id is a dictionary and has a "type" key
-    # This is to check if the triggered_id is from the ai-icon
     if triggered_id and isinstance(triggered_id, dict) and "type" in triggered_id:
-        is_ai_modal_open = not is_ai_modal_open
+        return not is_open
+    return is_open
 
-    output_content = [
+@callback(
+    Output("ai-output", "children"),
+    Input("ai-message-store", "data"),
+    prevent_initial_call=True
+)
+def render_modal_content(messages):
+    if not messages:
+        return dash.no_update
+
+    # # Simulate slight delay to allow spinner
+    # time.sleep(5)
+
+    return [
         html.Div([
             dcc.Markdown(msg),
-            html.Hr(style={"margin": "10px 0"})  # ← clean separator
+            html.Hr(style={"margin": "10px 0"})
         ]) for msg in messages
     ]
-
-    return is_ai_modal_open, output_content
-
 
 # @callback(
 #     Output("ai-modal", "is_open"),

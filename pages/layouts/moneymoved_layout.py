@@ -70,6 +70,7 @@ def chart_header_title_with_ai(chart_id, title):
                 id="ai-message-store",
                 data=[],
             ),
+            # dcc.Store(id="chart-figure-store"),
             dbc.Row(
                 class_name="d-flex justify-content-between align-items-center w-100",
                 children=[
@@ -1571,15 +1572,15 @@ def moneymoved_layout():
                                                                             children=[
                                                                                 html.Div(
                                                                                     [
-                                                                                        dbc.ModalHeader(
+                                                                                        dbc.ModalHeader([
                                                                                             # dbc.ModalTitle("Header"),
                                                                                             html.Div(
-                                                                                                "🧠 AI Insights",
-                                                                                                style={
-                                                                                                    "fontWeight": "bold"
-                                                                                                },
-                                                                                            )
-                                                                                        ),
+                                                                                                [
+                                                                                                    html.Span("🧠 AI Insights", style={"fontWeight": "bold"}),
+                                                                                                    html.Span(" (Wait for few seconds)")
+                                                                                                ]
+                                                                                            ),
+                                                                                        ]),
                                                                                         
                                                                                         html.Hr(),
                                                                                         dcc.Loading(
