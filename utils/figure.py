@@ -703,23 +703,82 @@ class Figure:
         sink_actual = grouped["actual_arr"].sum()
         gap_total = grouped["gap_arr"].sum() if view_mode == "target" and "gap_arr" in grouped else 0
 
-        # Label nodes with $ values
-        chapter_labels = [f"{ch}\n${chapter_actuals[ch]:,.1f}" for ch in chapter_actuals]
-        freq_labels = [f"{fr}\n${freq_actuals[fr]:,.1f}" for fr in freq_actuals]
+
+        # # Label nodes with $ values
+        # chapter_labels = [f"{ch}\n${chapter_actuals[ch]:,.1f}" for ch in chapter_actuals]
+        # freq_labels = [f"{fr}\n${freq_actuals[fr]:,.1f}" for fr in freq_actuals]
+        # sink_labels = (
+        #     [f"Actual ARR\n${sink_actual:,.1f}"] if view_mode == "actual"
+        #     else [f"Actual ARR\n${sink_actual:,.1f}", f"Gap to Target\n${gap_total:,.1f}"]
+        # )
+
+        # all_labels = chapter_labels + freq_labels + sink_labels
+        # node_idx = {label: idx for idx, label in enumerate(all_labels)}
+
+        # sources, targets, values = [], [], []
+
+        # # Build source to frequency flows
+        # for _, row in grouped.iterrows():
+        #     ch_label = f"{row['pledge_chapter_type']}\n${chapter_actuals[row['pledge_chapter_type']]:,.1f}"
+        #     fr_label = f"{row['pledge_frequency']}\n${freq_actuals[row['pledge_frequency']]:,.1f}"
+        #     flow_value = row["actual_arr"] if view_mode == "actual" else row["actual_arr"] + row["gap_arr"]
+
+        #     sources.append(node_idx[ch_label])
+        #     targets.append(node_idx[fr_label])
+        #     values.append(flow_value)
+
+        # Compute label values based on view mode
+        chapter_labels = []
+        freq_labels = []
+        chapter_totals = {}
+        freq_totals = {}
+
+        if view_mode == "actual":
+            for ch in chapter_actuals:
+                label = f"{ch}\n${chapter_actuals[ch]:,.1f}"
+                chapter_labels.append(label)
+                chapter_totals[ch] = label
+
+            for fr in freq_actuals:
+                label = f"{fr}\n${freq_actuals[fr]:,.1f}"
+                freq_labels.append(label)
+                freq_totals[fr] = label
+        else:
+            # Sum actual + gap for totals
+            chapter_targets = grouped.groupby("pledge_chapter_type")[["actual_arr", "gap_arr"]].sum()
+            chapter_targets["total"] = chapter_targets["actual_arr"] + chapter_targets["gap_arr"]
+            for ch in chapter_targets.index:
+                total = chapter_targets.loc[ch, "total"]
+                label = f"{ch}\n${total:,.1f}"
+                chapter_labels.append(label)
+                chapter_totals[ch] = label
+
+            freq_targets = grouped.groupby("pledge_frequency")[["actual_arr", "gap_arr"]].sum()
+            freq_targets["total"] = freq_targets["actual_arr"] + freq_targets["gap_arr"]
+            for fr in freq_targets.index:
+                total = freq_targets.loc[fr, "total"]
+                label = f"{fr}\n${total:,.1f}"
+                freq_labels.append(label)
+                freq_totals[fr] = label
+
+        # Sink labels (no change)
         sink_labels = (
-            [f"Actual ARR\n${sink_actual:,.1f}"] if view_mode == "actual"
+            [f"Actual ARR\n${sink_actual:,.1f}"]
+            if view_mode == "actual"
             else [f"Actual ARR\n${sink_actual:,.1f}", f"Gap to Target\n${gap_total:,.1f}"]
         )
 
+        # Full label list and index
         all_labels = chapter_labels + freq_labels + sink_labels
         node_idx = {label: idx for idx, label in enumerate(all_labels)}
 
+        # Build flows
         sources, targets, values = [], [], []
 
-        # Build source to frequency flows
+        # Chapter → Frequency
         for _, row in grouped.iterrows():
-            ch_label = f"{row['pledge_chapter_type']}\n${chapter_actuals[row['pledge_chapter_type']]:,.1f}"
-            fr_label = f"{row['pledge_frequency']}\n${freq_actuals[row['pledge_frequency']]:,.1f}"
+            ch_label = chapter_totals[row["pledge_chapter_type"]]
+            fr_label = freq_totals[row["pledge_frequency"]]
             flow_value = row["actual_arr"] if view_mode == "actual" else row["actual_arr"] + row["gap_arr"]
 
             sources.append(node_idx[ch_label])
@@ -727,18 +786,36 @@ class Figure:
             values.append(flow_value)
 
         # Frequency to sink flows
-        for fr in freq_actuals:
-            fr_label = f"{fr}\n${freq_actuals[fr]:,.1f}"
-            if freq_actuals[fr] > 0:
+        for fr, fr_label in freq_totals.items():
+            actual_val = freq_actuals.get(fr, 0)
+
+            # Flow to Actual ARR
+            if actual_val > 0:
                 sources.append(node_idx[fr_label])
                 targets.append(node_idx[f"Actual ARR\n${sink_actual:,.1f}"])
-                values.append(freq_actuals[fr])
-            if view_mode == "target" and fr in grouped["pledge_frequency"].values:
+                values.append(actual_val)
+
+            # Flow to Gap (only in target mode)
+            if view_mode == "target":
                 gap_val = grouped[grouped["pledge_frequency"] == fr]["gap_arr"].sum()
                 if gap_val > 0:
                     sources.append(node_idx[fr_label])
                     targets.append(node_idx[f"Gap to Target\n${gap_total:,.1f}"])
                     values.append(gap_val)
+
+        # Frequency to sink flows
+        # for fr in freq_actuals:
+        #     fr_label = f"{fr}\n${freq_actuals[fr]:,.1f}"
+        #     if freq_actuals[fr] > 0:
+        #         sources.append(node_idx[fr_label])
+        #         targets.append(node_idx[f"Actual ARR\n${sink_actual:,.1f}"])
+        #         values.append(freq_actuals[fr])
+        #     if view_mode == "target" and fr in grouped["pledge_frequency"].values:
+        #         gap_val = grouped[grouped["pledge_frequency"] == fr]["gap_arr"].sum()
+        #         if gap_val > 0:
+        #             sources.append(node_idx[fr_label])
+        #             targets.append(node_idx[f"Gap to Target\n${gap_total:,.1f}"])
+        #             values.append(gap_val)
 
         # Define node colors
         node_colors = [

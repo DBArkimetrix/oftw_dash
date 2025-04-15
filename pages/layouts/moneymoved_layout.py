@@ -287,6 +287,61 @@ def moneymoved_layout():
                                                                                     ),
                                                                                 ],
                                                                             ),
+                                                                            html.Div(
+                                                                                className="col-lg-1 col-md-1 ",
+                                                                                children=[
+                                                                                    html.Div(
+                                                                                        className="card h-100",
+                                                                                        children=[
+                                                                                            html.Div(
+                                                                                                className="card-body ",
+                                                                                                children=[
+                                                                                                    
+                                                                                                    html.Div([
+                                                                                                        dbc.Button(
+                                                                                                            "About OFTW Dashboard",
+                                                                                                            id="about-dashboard-button",
+                                                                                                            className="mb-3",
+                                                                                                            color="primary",
+                                                                                                            n_clicks=0,
+                                                                                                        ),
+                                                                                                        dbc.Modal([
+                                                                                                            dbc.ModalHeader(dbc.ModalTitle("About OFTW Dashboard")),
+                                                                                                            dbc.ModalBody([
+                                                                                                                dbc.CardBody(
+                                                                                                                        html.Iframe(
+                                                                                                                            src="/assets/about.html",
+                                                                                                                            style={"width": "100%", "height": "100vh", "border": "none"}
+                                                                                                                        )
+                                                                                                                    )
+                                                                                                            ]),
+                                                                                                            # dbc.ModalFooter(
+                                                                                                            #     dbc.Button("Done", id="done-target-form-button", className="ms-auto", n_clicks=0)
+                                                                                                            # ),
+                                                                                                            ],
+                                                                                                            id="about-dashboard-modal",
+                                                                                                            is_open=False,
+                                                                                                            fullscreen=True,
+                                                                                                        ),
+                                                                                                        # dbc.Collapse(
+                                                                                                        #     dbc.Card(
+                                                                                                        #         dbc.CardBody(
+                                                                                                        #             html.Iframe(
+                                                                                                        #                 src="/assets/about.html",
+                                                                                                        #                 style={"width": "100%", "height": "90vh", "border": "none"}
+                                                                                                        #             )
+                                                                                                        #         )
+                                                                                                        #     ),                                                               
+                                                                                                        #     id="collapse",
+                                                                                                        #     is_open=False,
+                                                                                                        # ),
+                                                                                                    ]),
+                                                                                                ],
+                                                                                            ),
+                                                                                        ],
+                                                                                    ),
+                                                                                ],
+                                                                            ),
                                                                             # html.Div(
                                                                             #     className="col-lg-4 col-md-4 ",
                                                                             #     children=[
@@ -1639,29 +1694,6 @@ def moneymoved_layout():
                                                                 ],
                                                             ),
                                                         ],
-                                                    ),
-                                                    html.Div(
-                                                        [
-                                                            dbc.Button(
-                                                                "About OFTW Dashboard",
-                                                                id="collapse-button",
-                                                                className="mb-3",
-                                                                color="primary",
-                                                                n_clicks=0,
-                                                            ),
-                                                            dbc.Collapse(
-                                                                dbc.Card(
-                                                                    dbc.CardBody(
-                                                                        html.Iframe(
-                                                                            src="/assets/about.html",
-                                                                            style={"width": "100%", "height": "400px", "border": "none"}
-                                                                        )
-                                                                    )
-                                                                ),                                                               
-                                                                id="collapse",
-                                                                is_open=False,
-                                                            ),
-                                                        ]
                                                     ),
                                                     html.Div([
                                                         html.Footer(

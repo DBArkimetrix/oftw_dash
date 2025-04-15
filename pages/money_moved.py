@@ -473,6 +473,17 @@ def open_modal_on_click(ai_icon_clicks, is_open):
     return is_open
 
 @callback(
+    Output("about-dashboard-modal", "is_open"),
+    Input("about-dashboard-button", "n_clicks"),
+    State("about-dashboard-modal", "is_open"),
+    prevent_initial_call=True
+)
+def open_modal_on_click(button_clicks, is_open):
+    if button_clicks:
+        return not is_open
+    return is_open
+
+@callback(
     Output("ai-output", "children"),
     Input("ai-message-store", "data"),
     prevent_initial_call=True
