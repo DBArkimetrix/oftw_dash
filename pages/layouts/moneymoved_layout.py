@@ -203,7 +203,7 @@ def moneymoved_layout():
                                                                                                         className="d-flex justify-content-end mt-3",
                                                                                                         children=[
                                                                                                             dbc.Button(
-                                                                                                                "Set Target",
+                                                                                                                "Set Targets",
                                                                                                                 id="set-target-button",
                                                                                                                 color="primary",
                                                                                                                 className="me-2",
